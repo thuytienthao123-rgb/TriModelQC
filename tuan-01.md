@@ -50,9 +50,4 @@ Quy ước: ✅ xong **và đã qua review** · 🟡 đã gán xong, đang revie
 
 ## Kế hoạch tuần 02
 
-- Bắt đầu validation Job #1474 và #1475 theo đúng Reviewer đã phân công.
-- Hoàn tất validation các Job #1476, #1477, #1691 và #1693 đang thực hiện.
-- Theo dõi nghiệm thu Job #1690 và #1692; xử lý thêm nếu có phản hồi chất lượng mới.
-- Tổng hợp lỗi theo nhóm: sai lớp nhãn, bounding box, thiếu đối tượng và thuộc tính `occluded` / `truncated`.
-- Trả lại các frame chưa đạt để chỉnh sửa, sau đó nghiệm thu và chuyển các job đạt yêu cầu sang trạng thái hoàn thành.
-- Ghi các edge case chưa được guideline giải đáp vào `problem-backlog.md`; ghi quyết định đã thống nhất vào `so-quyet-dinh.md`.
+Tiếp nhận và phân chia các job tracking video theo vai trò Annotator và Reviewer; theo dõi, phối hợp và đẩy nhanh tiến độ hoàn thành các job hiệu quả hơn so với tuần 1
