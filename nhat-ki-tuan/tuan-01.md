@@ -44,8 +44,7 @@ Quy ước: ✅ xong **và đã qua review** · 🟡 đã gán xong, đang revie
 
 ## Vướng mắc
 
-- Bốn job (#1476, #1477, #1691 và #1693) vẫn đang trong quá trình validation.
-- Chưa có số liệu tổng hợp về số lỗi, tỷ lệ đạt lần đầu hoặc số frame bị trả lại sau validation của các job đang kiểm tra.
+- Chưa có số liệu/ tham chiếu để đánh giá cụ thể việc đạt/ chưa đạt đối với của các job.
 
 ## Kế hoạch tuần 02
 
