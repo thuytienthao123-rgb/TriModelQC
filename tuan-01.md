@@ -9,7 +9,7 @@
 |---|---|---|---|
 | **Trần Thị Thủy Tiên** | `2A202602171` | **Lead · Annotator · Reviewer** | Lead nhóm Job #1690–#1693; Annotator Job #1474; Reviewer Job #1476, #1690–#1692 và review lần 2 Job #1477, #1693; tổng hợp báo cáo và theo dõi nghiệm thu toàn nhóm |
 | **Hoàng Công Chứ** | `2A202602187` | **Lead · Annotator · Reviewer** | Lead phụ trách phân công nhóm Job #1474–#1477; Annotator Job #1690; Reviewer lần 1 Job #1693 |
-| **Đoàn Văn Thắng** | `2A202602327` | **Annotator** | Annotator Job #1475 và #1691; Reviewer lần 1 Job #1477 |
+| **Đoàn Văn Thắng** | `2A202602327` | **Annotator** | Annotator Job #1475 và #1691|
 | **Nguyễn Thanh Đức** | `2A202602279` | **Annotator · Reviewer** | Annotator Job #1476 và #1692; Reviewer Job #1474 |
 | **Đào Ngọc Hiếu** | `2A202602081` | **Annotator · Reviewer** | Annotator Job #1477 và #1693; Reviewer Job #1475 |
 
