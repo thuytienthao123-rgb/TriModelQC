@@ -38,8 +38,7 @@ Quy ước: ✅ xong **và đã qua review** · 🟡 đã gán xong, đang revie
 - Đã gán: **200 / 200 frames (100%)** trên 8 jobs.
 - Đã chuyển sang validation: **8 / 8 jobs (100%)**.
 - Đã review xong và chuyển sang nghiệm thu: **2 / 8 jobs (25%)** — #1690 và #1692, tương ứng 50 frames.
-- Validation đang thực hiện: **4 / 8 jobs (50%)** — #1476, #1477, #1691 và #1693.
-- Validation đang chờ bắt đầu: **2 / 8 jobs (25%)** — #1474 và #1475.
+- Validation đang thực hiện: **6 / 8 jobs (50%)** — #1476, #1477, #1691, #1693, #1474 và #1475
 - Phân công Job #1474–#1477 do Lead Hoàng Công Chứ điều phối; cặp Annotator–Reviewer được ghi theo bảng phân công chính thức của nhóm.
 - Edge case mới / đã chốt: **chưa ghi nhận** trong thông tin cập nhật tuần này.
 
