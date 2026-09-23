@@ -1,46 +1,69 @@
-# Repo đội — Cohort 4A
+# source-tool
 
-Repo làm việc của một đội gán nhãn. Mỗi đội nhận một bản sao của template này.
+Chỗ để source code **công cụ đội tự viết** nhằm gỡ những pain point gặp phải trong lúc gán nhãn.
 
-> Tên người, handle GitHub, số liệu và link CVAT trong các file mẫu đều là **giả**,
-> chỉ để minh hoạ cách ghi. Thay bằng dữ liệu của đội khi bắt đầu.
+Lúc đầu thư mục này chỉ có README. Đó là cố ý: **tool được viết sau khi đã xác định được pain
+point**, không viết trước. Tool làm từ tưởng tượng thường giải một vấn đề không ai gặp.
 
-## Có gì trong repo
+## Khi nào thì nên làm tool
 
-| Đường dẫn | Dùng để | Cập nhật khi nào |
-|---|---|---|
-| [`nhat-ky-tuan/`](nhat-ky-tuan/) | Ai giữ vị trí nào, được phân công gì, xong tới đâu | Đầu tuần phân công, cuối tuần chốt |
-| [`problem-backlog.md`](problem-backlog.md) | Edge case gặp khi gán nhãn mà guideline chưa trả lời được, kèm link CVAT | **Ngay khi gặp** |
-| [`so-quyet-dinh.md`](so-quyet-dinh.md) | Những gì đội đã chốt, và vì sao | Mỗi lần chốt một vấn đề |
-| [`source-tool/`](source-tool/) | Source code công cụ đội tự viết để gỡ pain point khi gán nhãn | Khi đã xác định được pain point đáng làm tool |
+Làm khi đủ cả bốn điều:
 
-## Các file nối với nhau thế nào
+1. Pain point đã được ghi trong [`problem-backlog.md`](../problem-backlog.md) với loại **Pain point công cụ**.
+2. Nó lặp lại — nhiều người gặp, ở nhiều job — chứ không phải một lần.
+3. Ước được lợi ích: tiết kiệm bao nhiêu thời gian, hoặc bớt được kiểu lỗi nào.
+4. CVAT chưa có sẵn cách làm được. Kiểm tra trước: phím tắt, chế độ Track, auto-annotation,
+   import/export.
 
-```mermaid
-flowchart LR
-    A[Gán nhãn trên CVAT] -->|gặp edge case| B[problem-backlog.md<br/>P-xxx + link CVAT]
-    B -->|đội bàn và chốt| C[so-quyet-dinh.md<br/>QĐ-xxx]
-    C -->|áp dụng lại| A
-    B -->|pain point công cụ lặp lại| D[source-tool/]
-    D -->|tool dùng khi gán| A
-    B -.-> E[nhat-ky-tuan/<br/>tổng kết tuần]
-    C -.-> E
+Khi bắt đầu làm, đổi trạng thái mục P-xxx trong backlog sang 🛠️ và trỏ về đây.
+
+## Cấu trúc khi đã có tool
+
+Mỗi tool một thư mục con, có README riêng:
+
+```
+source-tool/
+├── README.md              ← file này, giữ bảng danh sách tool
+└── nhan-box-qua-frame/    ← ví dụ
+    ├── README.md
+    └── …source code…
 ```
 
-## Vị trí trong đội
+Thêm tool thì thêm một dòng vào bảng:
 
-| Vị trí | Việc chính |
-|---|---|
-| **Lead** | Chia job, điều phối, đưa edge case ra bàn và chốt, giữ sổ quyết định |
-| **Annotator** | Gán nhãn theo guideline; gặp chỗ guideline không trả lời được thì ghi vào backlog thay vì tự đoán |
-| **Reviewer** | Kiểm job đã gán, trả lại chỗ sai kèm lý do |
+| Tool | Giải quyết | Người viết | Trạng thái |
+|---|---|---|---|
+| *(chưa có)* |  |  |  |
 
-Một người có thể giữ nhiều vị trí, nhưng **không review job do chính mình gán**.
+## Mẫu README cho từng tool
 
-## Quy ước
+````markdown
+# <tên tool>
 
-- **Mã**: `P-001`, `QĐ-001`, đánh số tăng dần. Không dùng lại số của mục đã bỏ.
-- **Nhắc người**: bằng handle GitHub, ví dụ `@thanh-vien-a`.
-- **Link CVAT**: trỏ tới đúng job và frame (`.../jobs/<id>?frame=<n>`), không trỏ tới cả task —
-  người đọc phải mở ra là thấy ngay chỗ có vấn đề.
-- **Mục guideline**: ghi số mục (`§3.2`) để ai cũng tra lại được.
+**Giải quyết:** [P-NNN](../../problem-backlog.md#p-nnn) — tóm tắt pain point
+
+## Pain point
+Trước khi có tool: làm thế nào, mất bao lâu, hay sai kiểu gì. Link CVAT tới ca điển hình.
+
+## Tool làm gì
+Một đoạn ngắn.
+
+## Cài đặt và chạy
+```bash
+# lệnh cài
+# lệnh chạy, kèm ví dụ tham số
+```
+
+## Đầu vào / đầu ra
+- Vào: ví dụ file export của CVAT, định dạng nào
+- Ra: file gì, import lại vào CVAT thế nào
+
+## Đã thử trên
+Job nào, bao nhiêu ảnh, kết quả đo được (thời gian trước / sau, số lỗi trước / sau).
+
+## Giới hạn
+Những ca tool chưa xử lý đúng — annotator vẫn phải tự kiểm.
+
+## Người viết
+@
+````
