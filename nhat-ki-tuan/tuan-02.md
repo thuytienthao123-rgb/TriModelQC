@@ -26,14 +26,22 @@
 | 6 | **Job #2675** — 10 frames, human-body-keypoints pre-label | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
 | 7 | **Job #2676** — 10 frames, human-body-keypoints pre-label | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1; phát hiện edge case [P-002](../problem-backlog-tuan-02.md#p-002) |
 | 8 | **Job #2677** — 10 frames, human-body-keypoints pre-label | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1; phát hiện edge case [P-001](../problem-backlog-tuan-02.md#p-001) |
+| 9 | **Job #2678** — 5 frames (Frame 0–4), Face Landmark `human-face` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | 🟡 100% | Review xong nhưng chờ giải quyết edge case [P-003] |
+| 10 | **Job #2679** — 5 frames (Frame 5–9), Face Landmark `human-face` | `2A202602187` (Công Chứ) | `2A202602279` (Thanh Đức) | ✅ 100% |  Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
+| 11 | **Job #2680** — 5 frames (Frame 10–14), Face Landmark `human-face` | `2A202602171` (Thủy Tiên) | `2A202602279` (Thanh Đức) | ✅ 100% |  Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
+| 12 | **Job #2681** — 5 frames (Frame 15-19), Face Landmark `human-face` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | ✅ 100% |  Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
+| 13 | **Job #2682** — 13 frames (Frame 0–12), Face Landmark `human-face-prelabel` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | ✅ 100% | Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
+| 14 | **Job #2683** — 13 frames (Frame 13-25), Face Landmark `human-face-prelabel` | `2A202602187` (Công Chứ) | `2A202602279` (Thanh Đức) | ✅ 100% | Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
+| 15 | **Job #2684** — 13 frames (Frame 26-38), Face Landmark `human-face-prelabel` | `2A202602171` (Thủy Tiên) | `2A202602279` (Thanh Đức) | ✅ 100% | Đã review xong ngày 23/09 và chuyển sang nghiệm thu. | 
+| 16 | **Job #2685** — 11 frames (Frame 39-49), Face Landmark `human-face-prelabel` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | ✅ 100% | Đã review xong ngày 23/09 và chuyển sang nghiệm thu. |
 
 Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm (ghi %) · ⛔ bị chặn (ghi lý do) · ⬜ chưa bắt đầu
 
 ## Tổng kết
 
-- Đã gán:
+- Đã gán: **130 / 130 frames (100%)** trên 16 jobs
 - Qua review lần đầu:
-- Edge case mới / đã chốt:
+- Edge case mới / đã chốt: **3 edge cases mới**
 
 ## Vướng mắc
 
@@ -41,7 +49,9 @@ Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm (ghi %) 
 |---|---|---|
 | **[P-001](../problem-backlog-tuan-02.md#p-001)** — Point 6 khó xác định khớp vai | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/459/jobs/2677?frame=35](https://cvat.note.transformerlabs.ai/tasks/459/jobs/2677?frame=35) (Job #2677, frame 35)<br>File ảnh: `w2/human-body-keypoints-prelabel/G05/000420_vp4_run2_2018-05-22-14-25-04.kinect_color_f013920.jpg` | Tạm thời ước lượng theo tương quan cổ – cánh tay; chờ họp nhóm chốt quy chuẩn |
 | **[P-002](../problem-backlog-tuan-02.md#p-002)** — Point 8 bị che khuất | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/459/jobs/2676?frame=25](https://cvat.note.transformerlabs.ai/tasks/459/jobs/2676?frame=25) (Job #2676, frame 25) | Ước lượng theo hướng xương chi và gắn nhãn `occluded`; chờ họp nhóm chốt tiêu chuẩn |
+| **[P-003](../problem-backlog-tuan-02.md#p-003)** — Khoảng cách 43-44-45 và 47-48-49 hợp frame nhưng lệch tỉ lệ | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1](https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1) (Job #2678, frame 1) | Ước lượng theo hình ảnh; chờ họp nhóm chốt tiêu chuẩn |
 
-## Kế hoạch tuần sau
+## Kế hoạch trước hạn kế tiếp
 
--
+- Review lại những vấn đề còn vướng mắc
+- Chuyển sang những người khác review lại lần 2
