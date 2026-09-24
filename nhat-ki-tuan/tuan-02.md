@@ -18,12 +18,12 @@
 
 | # | Nội dung công việc | Annotator | Reviewer | Hoàn thành | Ghi chú |
 |---|---|---|---|---|---|
-| 1 | **Job #2670** — 5 frames, human-body-keypoints | `2A202602187` (Công Chứ) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
-| 2 | **Job #2671** — 5 frames, human-body-keypoints | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
-| 3 | **Job #2672** — 5 frames, human-body-keypoints | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
-| 4 | **Job #2673** — 5 frames, human-body-keypoints | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
-| 5 | **Job #2674** — 10 frames, human-body-keypoints pre-label | `2A202602187` (Công Chứ) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
-| 6 | **Job #2675** — 10 frames, human-body-keypoints pre-label | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1 |
+| 1 | **Job #2670** — 5 frames, human-body-keypoints | `2A202602187` (Công Chứ) | `2A202602327` (Văn Thắng) | ✅ 100% gán nhãn | Review xong lần 1 |
+| 2 | **Job #2671** — 5 frames, human-body-keypoints | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | ✅ 100% gán nhãn | Review xong lần 1 |
+| 3 | **Job #2672** — 5 frames, human-body-keypoints | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | ✅ 100% gán nhãn | Review xong lần 1 |
+| 4 | **Job #2673** — 5 frames, human-body-keypoints | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | ✅ 100% gán nhãn | Review xong lần 1 |
+| 5 | **Job #2674** — 10 frames, human-body-keypoints pre-label | `2A202602187` (Công Chứ) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1, chờ sửa lỗi |
+| 6 | **Job #2675** — 10 frames, human-body-keypoints pre-label | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | ✅ 100% gán nhãn | Review xong lần 1 |
 | 7 | **Job #2676** — 10 frames, human-body-keypoints pre-label | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1; phát hiện edge case [P-002](../problem-backlog-tuan-02.md#p-002) |
 | 8 | **Job #2677** — 10 frames, human-body-keypoints pre-label | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | 🟡 100% gán nhãn | Review xong lần 1; phát hiện edge case [P-001](../problem-backlog-tuan-02.md#p-001) |
 | 9 | **Job #2678** — 5 frames (Frame 0–4), Face Landmark `human-face` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | 🟡 100% | Review xong nhưng chờ giải quyết edge case [P-003] |
@@ -40,7 +40,7 @@ Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm (ghi %) 
 ## Tổng kết
 
 - Đã gán: **130 / 130 frames (100%)** trên 16 jobs
-- Qua review lần đầu:
+- Qua review lần đầu: **12 / 16 jobs**
 - Edge case mới / đã chốt: **3 edge cases mới**
 
 ## Vướng mắc
