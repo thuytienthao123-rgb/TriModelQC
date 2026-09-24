@@ -10,6 +10,7 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
 |---|---|---|---|---|---|
 | [P-001](#p-001) | Job #2677: Point 6 khó xác định khớp vai (`.jpg`) | Guideline chưa nói tới | — | 🔴 Mở | — |
 | [P-002](#p-002) | Job #2676: Point 8 bị che khuất khó ước lượng | Guideline chưa nói tới | — | 🔴 Mở | — |
+| [P-003](#p-003) | Job #2678: Khoảng cách các point 43-44-45 và 47-48-49 khớp ảnh nhưng sai tỉ lệ | Pain point công cụ | — | 🔴 Mở | — |
 
 **Loại**
 
@@ -54,6 +55,20 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
   1. Ước lượng vị trí tiềm năng dựa trên hướng xương và các khớp liên quan lân cận, gắn cờ che khuất (`occluded`).
   2. Không gán point nếu bị che hoàn toàn và không thể ngoại suy với độ tin cậy chấp nhận được.
 - **Xử lý tạm trong lúc chờ:** Ước lượng toạ độ theo tỷ lệ tương đối của chi và đánh dấu `occluded`, chờ xin ý kiến hoặc họp nhóm chốt tiêu chuẩn.
+- **Kết quả:** 🔴 Mở
+
+## P-003
+
+**Job #2678: Khoảng cách các point 43-44-45 và 47-48-49 khớp ảnh nhưng sai tỉ lệ (human-face)**
+
+- **Loại:** Pain point công cụ
+- **Mục guideline:** —
+- **Người phát hiện:** Nguyễn Thanh Đức (`2A202602279`) · 23/09/2026
+- **Link CVAT:** https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1 (Job #2678, frame 1)
+- **Mô tả:** Tại Job #2678, nếu căn khoảng cách giữa cách điểm 43-44-45 và 47-48-49 khớp ảnh nhưng bị sai tỉ lệ trong guideline và ngược lại
+- **Các cách hiểu / Hướng xử lý:**
+  1. Ước lượng vị trí tiềm năng của các điểm dựa theo ảnh
+- **Xử lý tạm trong lúc chờ:** Ước lượng toạ độ theo ảnh, chờ xin ý kiến mentor hoặc họp nhóm chốt tiêu chuẩn.
 - **Kết quả:** 🔴 Mở
 
 ---
