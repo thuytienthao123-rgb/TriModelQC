@@ -49,7 +49,7 @@ Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm (ghi %) 
 |---|---|---|
 | **[P-001](../problem-backlog-tuan-02.md#p-001)** — Point 6 khó xác định khớp vai | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/459/jobs/2677?frame=35](https://cvat.note.transformerlabs.ai/tasks/459/jobs/2677?frame=35) (Job #2677, frame 35)<br>File ảnh: `w2/human-body-keypoints-prelabel/G05/000420_vp4_run2_2018-05-22-14-25-04.kinect_color_f013920.jpg` | Tạm thời ước lượng theo tương quan cổ – cánh tay; chờ họp nhóm chốt quy chuẩn |
 | **[P-002](../problem-backlog-tuan-02.md#p-002)** — Point 8 bị che khuất | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/459/jobs/2676?frame=25](https://cvat.note.transformerlabs.ai/tasks/459/jobs/2676?frame=25) (Job #2676, frame 25) | Ước lượng theo hướng xương chi và gắn nhãn `occluded`; chờ họp nhóm chốt tiêu chuẩn |
-| **[P-003](../problem-backlog-tuan-02.md#p-003)** — Khoảng cách 43-44-45 và 47-48-49 hợp frame nhưng lệch tỉ lệ | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1](https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1) (Job #2678, frame 1) | Ước lượng theo hình ảnh; chờ họp nhóm chốt tiêu chuẩn |
+| **[P-003](../problem-backlog-tuan-02.md#p-003)** — Khoảng cách 43-44-45 và 47-48-49 hợp frame nhưng lệch tỉ lệ | Link CVAT: [https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1](https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1) (Job #2678, frame 1) | Ước lượng theo hình ảnh; chờ họp mentor chốt tiêu chuẩn |
 
 ## Kế hoạch trước hạn kế tiếp
 
