@@ -26,14 +26,14 @@
 | 6 | **Job #2675** — 10 frames, human-body-keypoints pre-label | `2A202602171` (Thủy Tiên) | `2A202602327` (Văn Thắng) | — | ✅ 100% hoàn thành | Review xong lần 1, đạt nghiệm thu |
 | 7 | **Job #2676** — 10 frames, human-body-keypoints pre-label | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | `2A202602171` (Thủy Tiên) | ✅ 100% hoàn thành | Review xong lần 1 & lần 2; đã xử lý [P-002](../problem-backlog-tuan-02.md#p-002) theo mentor hướng dẫn |
 | 8 | **Job #2677** — 10 frames, human-body-keypoints pre-label | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | ✅ 100% hoàn thành | Review xong lần 1 & lần 2; đã xử lý [P-001](../problem-backlog-tuan-02.md#p-001) theo mentor hướng dẫn |
-| 9 | **Job #2678** — 5 frames (Frame 0–4), Face Landmark `human-face` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Review xong; đã xử lý [P-003](../problem-backlog-tuan-02.md#p-003) theo mentor hướng dẫn |
+| 9 | **Job #2678** — 5 frames (Frame 0–4), Face Landmark `human-face` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | `2A202602171` (Thủy Tiên) | ✅ 100% hoàn thành | Review xong; đã xử lý [P-003](../problem-backlog-tuan-02.md#p-003) theo mentor hướng dẫn |
 | 10 | **Job #2679** — 5 frames (Frame 5–9), Face Landmark `human-face` | `2A202602187` (Công Chứ) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
 | 11 | **Job #2680** — 5 frames (Frame 10–14), Face Landmark `human-face` | `2A202602171` (Thủy Tiên) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
-| 12 | **Job #2681** — 5 frames (Frame 15-19), Face Landmark `human-face` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
-| 13 | **Job #2682** — 13 frames (Frame 0–12), Face Landmark `human-face-prelabel` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
+| 12 | **Job #2681** — 5 frames (Frame 15-19), Face Landmark `human-face` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
+| 13 | **Job #2682** — 13 frames (Frame 0–12), Face Landmark `human-face-prelabel` | `2A202602327` (Văn Thắng) | `2A202602279` (Thanh Đức) | `2A202602171` (Thủy Tiên) | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
 | 14 | **Job #2683** — 13 frames (Frame 13-25), Face Landmark `human-face-prelabel` | `2A202602187` (Công Chứ) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
 | 15 | **Job #2684** — 13 frames (Frame 26-38), Face Landmark `human-face-prelabel` | `2A202602171` (Thủy Tiên) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu | 
-| 16 | **Job #2685** — 11 frames (Frame 39-49), Face Landmark `human-face-prelabel` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | — | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
+| 16 | **Job #2685** — 11 frames (Frame 39-49), Face Landmark `human-face-prelabel` | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | `2A202602327` (Văn Thắng) | ✅ 100% hoàn thành | Đã review xong và chuyển sang nghiệm thu |
 
 Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm (ghi %) · ⛔ bị chặn (ghi lý do) · ⬜ chưa bắt đầu
 
