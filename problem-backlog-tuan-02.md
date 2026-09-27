@@ -8,9 +8,9 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
 
 | Mã | Tóm tắt | Loại | Mục guideline | Trạng thái | Kết quả |
 |---|---|---|---|---|---|
-| [P-001](#p-001) | Job #2677: Point 6 khó xác định khớp vai (`.jpg`) | Guideline chưa nói tới | — | 🔴 Mở | — |
-| [P-002](#p-002) | Job #2676: Point 8 bị che khuất khó ước lượng | Guideline chưa nói tới | — | 🔴 Mở | — |
-| [P-003](#p-003) | Job #2678: Khoảng cách các point 43-44-45 và 47-48-49 khớp ảnh nhưng sai tỉ lệ | Pain point công cụ | — | 🔴 Mở | — |
+| [P-001](#p-001) | Job #2677: Point 6 khó xác định khớp vai (`.jpg`) | Guideline chưa nói tới | — | 🟢 Đã đóng | Theo mentor hướng dẫn |
+| [P-002](#p-002) | Job #2676: Point 8 bị che khuất khó ước lượng | Guideline chưa nói tới | — | 🟢 Đã đóng | Theo mentor hướng dẫn |
+| [P-003](#p-003) | Job #2678: Khoảng cách các point 43-44-45 và 47-48-49 khớp ảnh nhưng sai tỉ lệ | Pain point công cụ | — | 🟢 Đã đóng | Theo mentor hướng dẫn |
 
 **Loại**
 
@@ -36,11 +36,11 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
 - **Tên & đuôi file ảnh:** `000420_vp4_run2_2018-05-22-14-25-04.kinect_color_f013920.jpg`
 - **Đường dẫn file ảnh đầy đủ:** `w2/human-body-keypoints-prelabel/G05/000420_vp4_run2_2018-05-22-14-25-04.kinect_color_f013920.jpg`
 - **Mô tả:** Trong ảnh `000420_vp4_run2_2018-05-22-14-25-04.kinect_color_f013920.jpg` tại Job #2677 (Task 459, frame 35), point 6 (vị trí khớp vai) rất khó xác định chính xác do tư thế người ngồi, góc chụp và quần áo che khuất vị trí giải phẫu chuẩn của vai.
-- **Các cách hiểu / Hướng xử lý:**
+- **Hướng xử lý:** Theo mentor hướng dẫn:
   1. Ước lượng vị trí khớp vai dựa trên tương quan giải phẫu với các điểm lân cận (cổ/khuỷu tay).
-  2. Đánh dấu thuộc tính che khuất (`occluded`) nếu hệ thống hỗ trợ, hoặc quy định tiêu chí bỏ qua point nếu không đủ độ tin cậy.
-- **Xử lý tạm trong lúc chờ:** Ước lượng gần đúng dựa trên đường nối giữa cổ và cánh tay, ghi chú lại để họp nhóm thống nhất quy chuẩn chung.
-- **Kết quả:** 🔴 Mở
+  2. Đánh dấu thuộc tính che khuất (`occluded`).
+- **Trạng thái:** 🟢 Đã đóng
+- **Kết quả:** Đã xử lý theo hướng dẫn của mentor
 
 ## P-002
 
@@ -51,11 +51,11 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
 - **Người phát hiện:** Đoàn Văn Thắng (`2A202602327`) · 23/09/2026
 - **Link CVAT:** https://cvat.note.transformerlabs.ai/tasks/459/jobs/2676?frame=25 (Job #2676, frame 25)
 - **Mô tả:** Tại Job #2676 (Task 459, frame 25), point 8 bị vật cản hoặc tư thế của đối tượng che khuất, rất khó ước lượng chính xác vị trí giải phẫu thực tế.
-- **Các cách hiểu / Hướng xử lý:**
-  1. Ước lượng vị trí tiềm năng dựa trên hướng xương và các khớp liên quan lân cận, gắn cờ che khuất (`occluded`).
-  2. Không gán point nếu bị che hoàn toàn và không thể ngoại suy với độ tin cậy chấp nhận được.
-- **Xử lý tạm trong lúc chờ:** Ước lượng toạ độ theo tỷ lệ tương đối của chi và đánh dấu `occluded`, chờ xin ý kiến hoặc họp nhóm chốt tiêu chuẩn.
-- **Kết quả:** 🔴 Mở
+- **Hướng xử lý:** Theo mentor hướng dẫn:
+  1. Ước lượng vị trí tiềm năng dựa trên hướng xương và các khớp liên quan lân cận.
+  2. Gắn cờ che khuất (`occluded`).
+- **Trạng thái:** 🟢 Đã đóng
+- **Kết quả:** Đã xử lý theo hướng dẫn của mentor
 
 ## P-003
 
@@ -66,10 +66,10 @@ Ghi ngay khi gặp, kể cả lúc chưa biết xử lý thế nào. Một edge 
 - **Người phát hiện:** Nguyễn Thanh Đức (`2A202602279`) · 23/09/2026
 - **Link CVAT:** https://cvat.note.transformerlabs.ai/tasks/460/jobs/2678?frame=1 (Job #2678, frame 1)
 - **Mô tả:** Tại Job #2678, nếu căn khoảng cách giữa cách điểm 43-44-45 và 47-48-49 khớp ảnh nhưng bị sai tỉ lệ trong guideline và ngược lại
-- **Các cách hiểu / Hướng xử lý:**
-  1. Ước lượng vị trí tiềm năng của các điểm dựa theo ảnh
-- **Xử lý tạm trong lúc chờ:** Ước lượng toạ độ theo ảnh, chờ xin ý kiến mentor hoặc họp nhóm chốt tiêu chuẩn.
-- **Kết quả:** 🔴 Mở
+- **Hướng xử lý:** Theo mentor hướng dẫn:
+  1. Ước lượng toạ độ và đặt các điểm theo ảnh thực tế để đảm bảo độ khớp với khuôn mặt đối tượng.
+- **Trạng thái:** 🟢 Đã đóng
+- **Kết quả:** Đã xử lý theo hướng dẫn của mentor
 
 ---
 
