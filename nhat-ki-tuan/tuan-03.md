@@ -19,10 +19,10 @@
 
 | # | Nội dung công việc | Annotator | Reviewer lần 1 | Reviewer lần 2 | Hoàn thành | Ghi chú |
 |---|---|---|---|---|---|---|
-| 1 | **Job #4051** — 11 frames (Frame 0–10), gán 3D cuboid nuScenes | `2A202602327` (Văn Thắng) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán đủ 11/11 frames; review xong lần 1; còn thiếu label rào chắn ([P-002](../problem-backlog-tuan-03.md#p-002)), đã tổng hợp chờ buổi mentor lần 1 |
-| 2 | **Job #4052** — 11 frames (Frame 11–21), gán 3D cuboid nuScenes | `2A202602279` (Thanh Đức) | `2A202602081` (Ngọc Hiếu) | — | 🟡 100% hoàn thành | Đã gán đủ 11/11 frames; review xong lần 1 |
-| 3 | **Job #4053** — 11 frames (Frame 22–32), gán 3D cuboid nuScenes | `2A202602187` (Công Chứ) | `2A202602081` (Ngọc Hiếu) | — | 🟡 100% hoàn thành | Đã gán đủ 11/11 frames; review xong lần 1; phát hiện xe ở xa chỉ thấy trên 2D camera không có điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã tổng hợp chờ buổi mentor lần 1 |
-| 4 | **Job #4054** — 8 frames (Frame 33–40), gán 3D cuboid nuScenes | `2A202602171` (Thủy Tiên) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán đủ 8/8 frames; review xong lần 1; phát hiện ca người ở xa thưa điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã gắn tag `can_xem_lai` chờ buổi mentor lần 1 |
+| 1 | **Job #4051** — 11 frames (Frame 0–10), gán 3D cuboid nuScenes | `2A202602327` (Văn Thắng) | `2A202602081` (Ngọc Hiếu) | — | 🟡 80% hoàn thành | Đã gán 11/11 frames; review xong lần 1; còn thiếu label rào chắn ([P-002](../problem-backlog-tuan-03.md#p-002)), đã tổng hợp chờ buổi mentor lần 1 |
+| 2 | **Job #4052** — 11 frames (Frame 11–21), gán 3D cuboid nuScenes | `2A202602279` (Thanh Đức) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán 11/11 frames; review xong lần 1 |
+| 3 | **Job #4053** — 11 frames (Frame 22–32), gán 3D cuboid nuScenes | `2A202602187` (Công Chứ) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán 11/11 frames; review xong lần 1; phát hiện xe ở xa chỉ thấy trên 2D camera không có điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã tổng hợp chờ buổi mentor lần 1 |
+| 4 | **Job #4054** — 8 frames (Frame 33–40), gán 3D cuboid nuScenes | `2A202602171` (Thủy Tiên) | `2A202602081` (Ngọc Hiếu) | — | 🟡 80% hoàn thành | Đã gán 8/8 frames; review xong lần 1; phát hiện ca người ở xa thưa điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã gắn tag `can_xem_lai` chờ buổi mentor lần 1 |
 
 
 Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm / đang chờ · ⛔ bị chặn (ghi lý do) · ⬜ chưa bắt đầu
