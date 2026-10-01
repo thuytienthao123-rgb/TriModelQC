@@ -51,6 +51,6 @@
 - **Mô tả:** Hàng rào chắn (`barrier`) trải dài nhưng đổi hướng gấp khúc (chữ L, zíc-zắc) hoặc kéo dài dọc khu vực công trường. 3D cuboid là hình hộp chữ nhật thẳng chỉ có một góc xoay yaw. Nếu vẽ 1 box bao cả cụm sẽ làm box phình cực to, chứa đầy khoảng trống mặt đường (lỗi §4.2) và sai hoàn toàn trục yaw (lỗi §4.3 & §7). Do đó tại Job #4051 annotator tạm thời chưa gán label rào chắn để chờ hướng dẫn từ mentor.
 - **Các cách hiểu / Hướng đề xuất:**
   1. Vẽ 1 box duy nhất bao trùm cả đường gấp khúc.
-  2. Chia thành nhiều box tương ứng với từng đoạn thẳng thẳng hàng của rào chắn (N khúc gấp = N box) ôm sát từng dải barrier.
+  2. Chia thành nhiều box tương ứng với từng đoạn thẳng thẳng hàng của rào chắn (N khúc gấp = N box) ôm sát từng dải barrier rồi dùng Group (gộp thành 1 nhóm).
 - **Xử lý tạm trong lúc chờ:** Tạm hoãn gán dải barrier chưa rõ quy cách tại Job #4051 (Job đạt 90%), đã tổng hợp chờ ý kiến mentor tại buổi mentor lần 1.
 - **Kết quả:** ↗️ Đã tổng hợp hình ảnh và tọa độ dải rào chắn Job #4051, chờ trao đổi trực tiếp tại **buổi mentor lần 1** để chốt quy cách phân tách box trước khi ban hành quyết định chính thức.
