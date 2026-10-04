@@ -9,8 +9,8 @@
 
 | Mã | Tóm tắt | Loại | Mục guideline | Trạng thái | Kết quả |
 |---|---|---|---|---|---|
-| [P-001](#p-001) | Thấy người, xe hoặc vật thể trên camera 2D nhưng ở 3D point cloud không thể gán vì không đủ căn cứ | Guideline mơ hồ | §4.4 | ↗️ Chờ mentor giải đáp | — |
-| [P-002](#p-002) | Rào chắn giao thông dựng trải dọc hình gấp khúc, không thẳng hàng thì vẽ mấy box / thiếu label rào chắn | Guideline mơ hồ | §4.3, §6 | ↗️ Chờ mentor giải đáp | — |
+| [P-001](#p-001) | Thấy người, xe hoặc vật thể trên camera 2D nhưng ở 3D point cloud không thể gán vì không đủ căn cứ | Guideline mơ hồ | §4.4 | ✅ Đã giải đáp tại Mentor 1 | [QĐ-003](so-quyet-dinh.md#qđ-003) |
+| [P-002](#p-002) | Rào chắn giao thông dựng trải dọc hình gấp khúc, không thẳng hàng thì vẽ mấy box / thiếu label rào chắn | Guideline mơ hồ | §4.3, §6 | ✅ Đã giải đáp tại Mentor 1 | [QĐ-004](so-quyet-dinh.md#qđ-004) |
 
 **Loại:** Guideline chưa nói tới · Guideline mơ hồ · Guideline mâu thuẫn · Pain point công cụ  
 **Trạng thái:** 🔴 Mở · 🗣️ Đang bàn · ↗️ Chờ mentor 1 · ✅ Đã chốt (trỏ sang QĐ) · 🛠️ Làm tool · ⚪ Bỏ
@@ -34,7 +34,7 @@
   2. Bỏ qua hoàn toàn nếu không thấy rõ toàn bộ hình khối 3D.
   3. Tuân thủ triệt để §1 & §4.4 của Guideline: Tuyệt đối không tạo box nếu không có cơ sở 3D hợp lý trong point cloud (0 điểm hoặc chỉ 1–2 điểm nhiễu). Nếu có cụm điểm tối thiểu (≥ 3–5 điểm) khớp góc nhìn camera thì căn theo ground plane và áp kích thước chuẩn (prior) của đối tượng để ôm cụm điểm.
 - **Xử lý tạm trong lúc chờ:** Gắn tag `can_xem_lai` tại các frame liên quan (Job #4054 frame 35 và Job #4053 frame 26), ghi nhận vào báo cáo tiến độ tuần và tổng hợp danh sách frame chờ buổi mentor lần 1.
-- **Kết quả:** ↗️ Đã tổng hợp danh sách các frame khó, chờ trao đổi trực tiếp tại **buổi mentor lần 1** để thống nhất quy tắc trước khi ban hành quyết định chính thức.
+- **Kết quả:** ✅ Đã được giải đáp tại buổi mentor lần 1 (03/10/2026). Thống nhất áp dụng theo hướng đề xuất và ban hành quyết định chính thức tại [QĐ-003](so-quyet-dinh.md#qđ-003): Không tạo 3D box nếu LiDAR có 0 điểm hoặc chỉ 1–2 điểm nhiễu. Đã rà soát Job #4053 frame 26 và Job #4054 frame 35, tháo tag `can_xem_lai` và hoàn tất review chéo lần 2.
 
 ---
 
@@ -51,6 +51,6 @@
 - **Mô tả:** Hàng rào chắn (`barrier`) trải dài nhưng đổi hướng gấp khúc (chữ L, zíc-zắc) hoặc kéo dài dọc khu vực công trường. 3D cuboid là hình hộp chữ nhật thẳng chỉ có một góc xoay yaw. Nếu vẽ 1 box bao cả cụm sẽ làm box phình cực to, chứa đầy khoảng trống mặt đường (lỗi §4.2) và sai hoàn toàn trục yaw (lỗi §4.3 & §7). Do đó tại Job #4051 annotator tạm thời chưa gán label rào chắn để chờ hướng dẫn từ mentor.
 - **Các cách hiểu / Hướng đề xuất:**
   1. Vẽ 1 box duy nhất bao trùm cả đường gấp khúc.
-  2. Chia thành nhiều box tương ứng với từng đoạn thẳng thẳng hàng của rào chắn (N khúc gấp = N box) ôm sát từng dải barrier rồi dùng Group (gộp thành 1 nhóm).
+  2. Chia thành nhiều box tương ứng với từng đoạn thẳng thẳng hàng của rào chắn (N khúc gấp = N box) ôm sát từng dải barrier.
 - **Xử lý tạm trong lúc chờ:** Tạm hoãn gán dải barrier chưa rõ quy cách tại Job #4051 (Job đạt 90%), đã tổng hợp chờ ý kiến mentor tại buổi mentor lần 1.
-- **Kết quả:** ↗️ Đã tổng hợp hình ảnh và tọa độ dải rào chắn Job #4051, chờ trao đổi trực tiếp tại **buổi mentor lần 1** để chốt quy cách phân tách box trước khi ban hành quyết định chính thức.
+- **Kết quả:** ✅ Đã được giải đáp tại buổi mentor lần 1 (03/10/2026). Thống nhất áp dụng chia N box theo từng đoạn thẳng và ban hành quyết định chính thức tại [QĐ-004](so-quyet-dinh.md#qđ-004). Khi review chéo lần 2, Nguyễn Thanh Đức phát hiện Thắng vẽ barrier chưa cố định số lượng khung và vị trí giữa các frame, đã trả về (*stage: annotation*) để Thắng khóa cố định số box đồng nhất qua toàn bộ 11 frames (0–10).
