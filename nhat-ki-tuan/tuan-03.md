@@ -9,20 +9,20 @@
 
 | Thành viên | MSSV | Vị trí | Phân công tuần này |
 |---|---|---|---|
-| **Đào Ngọc Hiếu** | `2A202602081` | **Lead · Reviewer** | Lead task W3-CUBOID-G5-T1; Reviewer lần 1 cho toàn bộ 4 Job #4051–#4054; điều phối tiến độ, rà soát và tổng hợp các ca khó, gửi câu hỏi xin ý kiến mentor, tổng hợp báo cáo và theo dõi nghiệm thu toàn nhóm |
-| **Đoàn Văn Thắng** | `2A202602327` | **Annotator** | Annotator Job #4051 (11 frames: Frame 0–10) |
-| **Nguyễn Thanh Đức** | `2A202602279` | **Annotator** | Annotator Job #4052 (11 frames: Frame 11–21) |
-| **Hoàng Công Chứ** | `2A202602187` | **Annotator** | Annotator Job #4053 (11 frames: Frame 22–32) |
-| **Trần Thị Thủy Tiên** | `2A202602171` | **Annotator** | Annotator Job #4054 (8 frames: Frame 33–40) |
+| **Đào Ngọc Hiếu** | `2A202602081` | **Lead · Reviewer** | Lead task W3-CUBOID-G5-T1; Reviewer lần 1 cho toàn bộ 4 Job #4051–#4054; điều phối tiến độ, rà soát ca khó và làm việc với mentor, ban hành QĐ-003 & QĐ-004, tổng hợp nghiệm thu task |
+| **Đoàn Văn Thắng** | `2A202602327` | **Annotator · Reviewer 2** | Annotator Job #4051 (11 frames: Frame 0–10); Reviewer lần 2 Job #4052 |
+| **Nguyễn Thanh Đức** | `2A202602279` | **Annotator · Reviewer 2** | Annotator Job #4052 (11 frames: Frame 11–21); Reviewer lần 2 Job #4051 |
+| **Hoàng Công Chứ** | `2A202602187` | **Annotator · Reviewer 2** | Annotator Job #4053 (11 frames: Frame 22–32); Reviewer lần 2 Job #4054 |
+| **Trần Thị Thủy Tiên** | `2A202602171` | **Annotator · Reviewer 2** | Annotator Job #4054 (8 frames: Frame 33–40); Reviewer lần 2 Job #4053 |
 
 ## Công việc
 
 | # | Nội dung công việc | Annotator | Reviewer lần 1 | Reviewer lần 2 | Hoàn thành | Ghi chú |
 |---|---|---|---|---|---|---|
-| 1 | **Job #4051** — 11 frames (Frame 0–10), gán 3D cuboid nuScenes | `2A202602327` (Văn Thắng) | `2A202602081` (Ngọc Hiếu) | — | 🟡 80% hoàn thành | Đã gán 11/11 frames; review xong lần 1; còn thiếu label rào chắn ([P-002](../problem-backlog-tuan-03.md#p-002)), đã tổng hợp chờ buổi mentor lần 1 |
-| 2 | **Job #4052** — 11 frames (Frame 11–21), gán 3D cuboid nuScenes | `2A202602279` (Thanh Đức) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán 11/11 frames; review xong lần 1 |
-| 3 | **Job #4053** — 11 frames (Frame 22–32), gán 3D cuboid nuScenes | `2A202602187` (Công Chứ) | `2A202602081` (Ngọc Hiếu) | — | 🟡 90% hoàn thành | Đã gán 11/11 frames; review xong lần 1; phát hiện xe ở xa chỉ thấy trên 2D camera không có điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã tổng hợp chờ buổi mentor lần 1 |
-| 4 | **Job #4054** — 8 frames (Frame 33–40), gán 3D cuboid nuScenes | `2A202602171` (Thủy Tiên) | `2A202602081` (Ngọc Hiếu) | — | 🟡 80% hoàn thành | Đã gán 8/8 frames; review xong lần 1; phát hiện ca người ở xa thưa điểm 3D ([P-001](../problem-backlog-tuan-03.md#p-001)), đã gắn tag `can_xem_lai` chờ buổi mentor lần 1 |
+| 1 | **Job #4051** — 11 frames (Frame 0–10), gán 3D cuboid nuScenes | `2A202602327` (Văn Thắng) | `2A202602081` (Ngọc Hiếu) | `2A202602279` (Thanh Đức) | 🟡 90% (Bị trả về sửa) | Đức đã review chéo lần 2 và trả về (*stage: annotation*); lỗi: Thắng vẽ hàng rào (`barrier`) không cố định qua các frame, ở các frame hàng rào vẽ khác nhau, số lượng khung box cũng khác nhau; Thắng đang hoàn thiện cố định lại |
+| 2 | **Job #4052** — 11 frames (Frame 11–21), gán 3D cuboid nuScenes | `2A202602279` (Thanh Đức) | `2A202602081` (Ngọc Hiếu) | `2A202602327` (Văn Thắng) | ✅ 100% hoàn thành | Review lần 1 xong; Thắng đã review chéo lần 2 xong (*stage: validation · state: completed*) |
+| 3 | **Job #4053** — 11 frames (Frame 22–32), gán 3D cuboid nuScenes | `2A202602187` (Công Chứ) | `2A202602081` (Ngọc Hiếu) | `2A202602171` (Thủy Tiên) | ✅ 100% hoàn thành | Đã xử lý ca xe ở xa theo [QĐ-003](../so-quyet-dinh.md#qđ-003), tháo tag `can_xem_lai`; Tiên đã review chéo lần 2 xong (*stage: validation · state: completed*) |
+| 4 | **Job #4054** — 8 frames (Frame 33–40), gán 3D cuboid nuScenes | `2A202602171` (Thủy Tiên) | `2A202602081` (Ngọc Hiếu) | `2A202602187` (Công Chứ) | ✅ 100% hoàn thành | Đã xử lý ca người thưa điểm theo [QĐ-003](../so-quyet-dinh.md#qđ-003), tháo tag `can_xem_lai`; Chứ đã review chéo lần 2 xong (*stage: validation · state: completed*) |
 
 
 Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm / đang chờ · ⛔ bị chặn (ghi lý do) · ⬜ chưa bắt đầu
@@ -30,24 +30,28 @@ Mức hoàn thành: ✅ xong **và đã qua review** · 🟡 đang làm / đang 
 ## Tổng kết
 
 - Đã gán sơ bộ: **41 / 41 frames (100%)** trên 4 jobs (Job #4051: 11/11, Job #4052: 11/11, Job #4053: 11/11, Job #4054: 8/8).
-- Tiến độ hoàn thiện sau review lần 1:
-  - **Job #4051:** 🟡 90% hoàn thành (11/11 frames; review xong lần 1; còn thiếu label rào chắn do vướng [P-002](../problem-backlog-tuan-03.md#p-002)).
-  - **Job #4052:** 🟡 100% hoàn thành (11/11 frames; review xong lần 1).
-  - **Job #4053:** 🟡 100% hoàn thành (11/11 frames; review xong lần 1; phát hiện ca xe ở xa không có điểm 3D [P-001](../problem-backlog-tuan-03.md#p-001), chờ mentor lần 1).
-  - **Job #4054:** 🟡 90% hoàn thành (8/8 frames; review xong lần 1; phát hiện ca người ở xa thưa điểm 3D [P-001](../problem-backlog-tuan-03.md#p-001), đã gắn tag `can_xem_lai`).
-- Qua review lần 1: **4 / 4 jobs (100%)** (Lead Đào Ngọc Hiếu đã rà soát sơ bộ 100% các frames, tổng hợp các ca khó).
-- Review lần 2: **Chưa có** (dự kiến thực hiện sau khi chốt hướng dẫn từ mentor và annotator hoàn thiện).
-- Vướng mắc kỹ thuật: **2 vấn đề chính ([P-001](../problem-backlog-tuan-03.md#p-001), [P-002](../problem-backlog-tuan-03.md#p-002)) / 0 đã chốt** (Trạng thái: **↗️ Chờ buổi mentor lần 1**).
+- Qua review lần 1: **4 / 4 jobs (100%)** do Lead Đào Ngọc Hiếu rà soát và nghiệm thu kỹ thuật sơ bộ.
+- Review chéo lần 2 (*validation*):
+  - **3 / 4 jobs đã hoàn thành 100% và nghiệm thu** (*validation: completed*):
+    - **Job #4052:** Đức gán, Thắng review chéo -> `completed`
+    - **Job #4053:** Chứ gán, Tiên review chéo -> `completed`
+    - **Job #4054:** Tiên gán, Chứ review chéo -> `completed`
+  - **1 / 4 job đang trả về để hoàn thiện lại** (*stage: annotation*):
+    - **Job #4051:** Thắng gán, Đức review chéo lần 2 đã trả về cho Thắng. Lý do: Hàng rào (`barrier`) vẽ không cố định qua các frame, ở các frame khác nhau hàng rào được vẽ khác nhau, số lượng khung box cũng khác nhau (vi phạm tính nhất quán thời gian của vật thể tĩnh).
+- Vướng mắc kỹ thuật & Hướng dẫn:
+  - 2 vấn đề lớn đã được Mentor giải đáp và ban hành [QĐ-003](../so-quyet-dinh.md#qđ-003) và [QĐ-004](../so-quyet-dinh.md#qđ-004).
+  - Vấn đề thực thi tại Job #4051: Thống nhất hướng dẫn Thắng phải cố định số lượng khung box barrier (ví dụ chia cố định N box) và vị trí/kích thước xuyên suốt từ frame 0 đến frame 10 để bảo đảm tính nhất quán của vật thể tĩnh.
 
 ## Vướng mắc
 
 | Mã / Vấn đề | Chi tiết & Link | Hướng xử lý / Trạng thái |
 |---|---|---|
-| **[P-001](../problem-backlog-tuan-03.md#p-001)** — Thấy người, xe hoặc vật thể trên camera 2D nhưng ở 3D point cloud không thể gán vì không đủ căn cứ | Tương ứng với **Job #4053** và **Job #4054**:<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4053?frame=26](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4053?frame=26) (**Job #4053**, frame 26 - Công Chứ): Xe ô tô đỗ ở góc xa trên `CAM_FRONT_LEFT` nhưng dữ liệu LiDAR không có điểm phản xạ (0 điểm)<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4054?frame=35](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4054?frame=35) (**Job #4054**, frame 35 - Thủy Tiên): Người ở xa trên vỉa hè (`CAM_FRONT_RIGHT`) thưa điểm 3D (chỉ 1–2 điểm nhiễu rời rạc), đã gắn tag `can_xem_lai` (Job đạt 90%) | **↗️ Chờ buổi mentor lần 1**<br>Nhóm đã chuẩn bị phương án đề xuất dựa theo §4.4: Nếu 0 điểm hoặc 1–2 điểm nhiễu thì không gán cuboid; nếu có cụm điểm (≥ 3–5 điểm) thì căn ground plane và áp kích thước prior. Đã gắn tag `can_xem_lai` tại các frame liên quan (như Job #4054), chờ trao đổi tại buổi mentor lần 1 để chốt quyết định. |
-| **[P-002](../problem-backlog-tuan-03.md#p-002)** — Rào chắn giao thông dựng trải dọc theo hình gấp khúc, không thẳng hàng thì vẽ mấy box / thiếu label rào chắn | Tương ứng với **Job #4051**:<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4051](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4051) (**Job #4051**, frame 0–10 - Văn Thắng): Dải rào chắn (`barrier`) thi công kéo dài/gấp khúc dọc mép đường chưa rõ quy cách phân tách box rào chắn nên còn thiếu label rào chắn (Job đạt 90%) | **↗️ Chờ buổi mentor lần 1**<br>Nhóm đã chuẩn bị phương án đề xuất chia nhỏ thành nhiều box (N khúc gấp = N box) ôm sát từng đoạn thẳng để tránh lỗi box quá lớn (§4.2) và sai yaw (§4.3). Tạm thời hoãn gán label rào chắn tại Job #4051, chờ trao đổi tại buổi mentor lần 1 để chốt quyết định. |
+| **[P-001](../problem-backlog-tuan-03.md#p-001)** — Thấy người, xe hoặc vật thể trên camera 2D nhưng ở 3D point cloud không thể gán vì không đủ căn cứ | Tương ứng với **Job #4053** và **Job #4054**:<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4053?frame=26](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4053?frame=26) (**Job #4053**, frame 26 - Công Chứ): Xe ô tô đỗ ở góc xa trên `CAM_FRONT_LEFT` nhưng dữ liệu LiDAR không có điểm phản xạ (0 điểm)<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4054?frame=35](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4054?frame=35) (**Job #4054**, frame 35 - Thủy Tiên): Người ở xa trên vỉa hè (`CAM_FRONT_RIGHT`) thưa điểm 3D (chỉ 1–2 điểm nhiễu rời rạc) | **✅ Đã giải đáp tại Mentor 1 · Áp dụng [QĐ-003](../so-quyet-dinh.md#qđ-003)**<br>Mentor đồng thuận với đề xuất của nhóm: Tuyệt đối không tạo 3D box nếu 0 điểm hoặc chỉ 1–2 điểm nhiễu rời rạc (§4.4). Annotator đã rà soát lại frame 26 và frame 35, xác nhận bỏ qua, tháo tag `can_xem_lai` và hoàn tất review chéo lần 2. |
+| **[P-002](../problem-backlog-tuan-03.md#p-002)** — Rào chắn giao thông dựng trải dọc theo hình gấp khúc, không thẳng hàng thì vẽ mấy box / thiếu label rào chắn | Tương ứng với **Job #4051**:<br>- [https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4051](https://cvat.note.transformerlabs.ai/tasks/1504/jobs/4051) (**Job #4051**, frame 0–10 - Văn Thắng): Dải rào chắn (`barrier`) thi công kéo dài/gấp khúc dọc mép đường | **✅ Đã giải đáp tại Mentor 1 · Áp dụng [QĐ-004](../so-quyet-dinh.md#qđ-004) · Đang sửa lỗi review chéo lần 2**<br>Mentor đồng thuận chia N box theo từng đoạn thẳng. Khi thực hiện, Thắng vẽ hàng rào không cố định qua các frame (ở các frame khác nhau hàng rào vẽ khác nhau, số lượng khung cũng khác nhau). Thanh Đức review lần 2 đã trả về (*annotation*) để Thắng chuẩn hóa cố định số lượng box và vị trí qua toàn bộ 11 frames. |
 
 ## Kế hoạch trước hạn kế tiếp
 
-- Giải quyết vướng mắc, ban hành quyết định kỹ thuật chính thức vào `so-quyet-dinh.md` ngay sau buổi mentor lần 1.
-- 4 annotator cập nhật chỉnh sửa các frame có vướng mắc tương ứng theo quyết định đã chốt.
-- Lead Đào Ngọc Hiếu tiến hành kiểm tra nghiệm thu chính thức toàn bộ 4 jobs (Job #4051–#4054) trước hạn chót.
+- Đoàn Văn Thắng hoàn thiện chỉnh sửa Job #4051: Khóa cố định số lượng box barrier và kích thước/vị trí đồng nhất qua tất cả các frame (0–10) của vật thể rào chắn tĩnh.
+- Nguyễn Thanh Đức kiểm tra lại Job #4051 sau khi Thắng nộp lại và chuyển sang trạng thái `validation: completed`.
+- Lead Đào Ngọc Hiếu kiểm tra đối chiếu lần cuối toàn bộ 41 frames trên CVAT.
+- Hoàn tất nghiệm thu và đóng task trước hạn nộp 23:00 Chủ nhật 04/10/2026.
