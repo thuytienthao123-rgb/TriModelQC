@@ -63,6 +63,15 @@ class TestRuleB01:
         errs = self.rule.check(frame)
         assert len(errs) == 1
 
+    def test_y1_negative(self):
+        obj = make_obj("err", "car", y1=-1)
+        errs = self.rule.check(make_frame(obj))
+        assert len(errs) == 1 and errs[0].rule_id == "RULE_B01"
+
+    def test_box_on_image_edges_is_valid(self):
+        obj = make_obj("edge", "car", x1=0, y1=0, x2=1280, y2=720)
+        assert self.rule.check(make_frame(obj)) == []
+
     def test_multiple_violations_one_obj(self):
         obj = make_obj("err", "car", x1=-5, y2=800)
         frame = make_frame(obj)
@@ -91,6 +100,16 @@ class TestRuleB02:
         obj = make_obj("inv", "car", x1=300, x2=100)
         errs = self.rule.check(make_frame(obj))
         assert len(errs) == 1
+
+    def test_zero_height(self):
+        obj = make_obj("z", "car", y1=200, y2=200)
+        errs = self.rule.check(make_frame(obj))
+        assert len(errs) == 1 and errs[0].rule_id == "RULE_B02"
+
+    def test_inverted_y_coordinates(self):
+        obj = make_obj("inv", "car", y1=300, y2=100)
+        errs = self.rule.check(make_frame(obj))
+        assert len(errs) == 1 and errs[0].rule_id == "RULE_B02"
 
 
 # ===========================================================================
@@ -134,6 +153,24 @@ class TestRuleB04:
     def test_barrier_exempt(self):
         obj = make_obj("bar", "barrier", x1=0, y1=100, x2=1000, y2=101)
         assert self.rule.check(make_frame(obj)) == []
+
+    def test_traffic_sign_exempt(self):
+        obj = make_obj("sign", "traffic sign", x1=0, y1=100, x2=1000, y2=101)
+        assert self.rule.check(make_frame(obj)) == []
+
+    def test_lane_is_not_exempt(self):
+        obj = make_obj("lane", "lane", x1=0, y1=100, x2=1000, y2=101)
+        errs = self.rule.check(make_frame(obj))
+        assert len(errs) == 1 and errs[0].rule_id == "RULE_B04"
+
+    def test_ratio_exactly_threshold_is_valid(self):
+        obj = make_obj("edge", "car", x1=0, y1=0, x2=250, y2=10)
+        assert self.rule.check(make_frame(obj)) == []
+
+    def test_tall_box_with_abnormal_ratio(self):
+        obj = make_obj("tall", "car", x1=100, y1=0, x2=101, y2=1000)
+        errs = self.rule.check(make_frame(obj))
+        assert len(errs) == 1 and errs[0].rule_id == "RULE_B04"
 
 
 # ===========================================================================
