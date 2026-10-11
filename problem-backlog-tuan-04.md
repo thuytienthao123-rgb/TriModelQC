@@ -1,7 +1,7 @@
 # Problem Backlog — Tuần 04 · 05/10 – 11/10/2026
 
 **Task:** Nghiên cứu & Xây dựng công cụ QC tự động cho dữ liệu BBox & Segmentation 2D BDD100K (Mã đề tài: **N2-04A**)  
-**Lead:** Đào Ngọc Hiếu (`2A202602081`)
+**Lead:** Trần Thị Thủy Tiên (`2A202602171`)
 
 ---
 
