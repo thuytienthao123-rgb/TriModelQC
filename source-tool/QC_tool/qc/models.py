@@ -39,6 +39,11 @@ class BBox2D:
     def area(self) -> float:
         return max(0.0, self.width) * max(0.0, self.height)
 
+    @property
+    def center(self) -> Tuple[float, float]:
+        """Tọa độ tâm (xc, yc) của bounding box."""
+        return ((self.x1 + self.x2) / 2.0, (self.y1 + self.y2) / 2.0)
+
     def iou(self, other: "BBox2D") -> float:
         """Tính Intersection over Union với box khác."""
         ix1 = max(self.x1, other.x1)

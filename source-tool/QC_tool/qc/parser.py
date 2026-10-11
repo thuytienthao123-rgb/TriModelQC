@@ -125,3 +125,92 @@ def load_bdd100k(file_path: str | Path) -> List[FrameData]:
     logger.info("Đã load %d frame(s) từ %s", len(frames), path.name)
     return frames
 
+
+def parse_yolo_text(
+    text: str,
+    frame_name: str = "frame_0000",
+    width: int = 1920,
+    height: int = 1080,
+    class_names: Optional[List[str]] = None,
+) -> FrameData:
+    """
+    Parse chuỗi text định dạng YOLO (BBox hoặc Polygon Segmentation) sang FrameData.
+    Hỗ trợ:
+      - YOLO BBox: <class_id> <x_center> <y_center> <width> <height> (chuẩn hóa 0..1)
+      - YOLO Polygon: <class_id> <x1> <y1> <x2> <y2> ... (chuẩn hóa 0..1)
+    """
+    objects: List[LabeledObject] = []
+    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip() and not ln.strip().startswith("#")]
+
+    for idx, line in enumerate(lines, start=1):
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+
+        try:
+            cls_id = int(float(parts[0]))
+        except ValueError:
+            continue
+
+        if class_names and 0 <= cls_id < len(class_names):
+            category = class_names[cls_id]
+        else:
+            category = f"class_{cls_id}"
+
+        # Trường hợp 1: YOLO Bounding Box (5 giá trị)
+        if len(parts) == 5:
+            try:
+                xc = float(parts[1])
+                yc = float(parts[2])
+                w = float(parts[3])
+                h = float(parts[4])
+            except ValueError:
+                continue
+
+            x1 = (xc - w / 2.0) * width
+            y1 = (yc - h / 2.0) * height
+            x2 = (xc + w / 2.0) * width
+            y2 = (yc + h / 2.0) * height
+
+            objects.append(
+                LabeledObject(
+                    id=f"obj_{idx:03d}",
+                    category=category,
+                    box2d=BBox2D(x1=x1, y1=y1, x2=x2, y2=y2),
+                    attributes={"occluded": False, "truncated": False},
+                )
+            )
+
+        # Trường hợp 2: YOLO Polygon / Segmentation (lẻ, > 5 giá trị)
+        elif len(parts) > 5 and len(parts) % 2 == 1:
+            try:
+                coords = [float(p) for p in parts[1:]]
+            except ValueError:
+                continue
+
+            vertices = [
+                [coords[i] * width, coords[i + 1] * height]
+                for i in range(0, len(coords), 2)
+            ]
+            xs = [v[0] for v in vertices]
+            ys = [v[1] for v in vertices]
+            box2d = BBox2D(x1=min(xs), y1=min(ys), x2=max(xs), y2=max(ys)) if xs and ys else None
+            poly2d = Polygon2D(vertices=vertices, types="cc", closed=True)
+
+            objects.append(
+                LabeledObject(
+                    id=f"obj_{idx:03d}",
+                    category=category,
+                    box2d=box2d,
+                    poly2d=poly2d,
+                    attributes={"occluded": False, "truncated": False},
+                )
+            )
+
+    return FrameData(
+        name=frame_name,
+        width=width,
+        height=height,
+        objects=objects,
+    )
+

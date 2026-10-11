@@ -5,8 +5,10 @@ Hỗ trợ kiểm tra chất lượng Bounding Box & Polygon 2D trên dataset BD
 
 from __future__ import annotations
 import json
+import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+import logging
+from typing import List, Dict, Any, Optional, Tuple
 
 import streamlit as st
 import pandas as pd
@@ -14,13 +16,293 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 
-from qc.models import ERROR, WARNING, FrameData, QCError, QCReport
-from qc.parser import parse_bdd100k_text, load_bdd100k
+from qc.models import (
+    ERROR,
+    WARNING,
+    FrameData,
+    QCError,
+    QCReport,
+    BBox2D,
+    Polygon2D,
+    LabeledObject,
+)
+from qc.parser import parse_bdd100k_text, load_bdd100k, parse_yolo_text
 from qc.engine import run_qc, DEFAULT_RULES
 from qc.rules.bbox_rules import ALL_BBOX_RULES
 from qc.rules.polygon_rules import ALL_POLYGON_RULES
 from qc.rules.attribute_rules import ALL_ATTRIBUTE_RULES
+from qc.rules.sequence_rules import ALL_SEQUENCE_RULES
 from qc.reporter import generate_csv_str, generate_html_str
+
+logger = logging.getLogger("QC_App")
+
+
+# ---------------------------------------------------------------------------
+# Hỗ trợ đọc đa định dạng (JSON BDD100K & TXT YOLO)
+# ---------------------------------------------------------------------------
+SUPPORTED_EXTS = [".json", ".txt", ".xml"]
+
+
+LOCAL_IMAGE_DIRS = [
+    Path(r"C:\Users\tient\Downloads\Group_23\dataset_final\images"),
+    Path(r"C:\Users\tient\Downloads\Group_23\du_lieu\images"),
+    Path(r"C:\Users\tient\Downloads\Group_23\anylabeling_workspace\Video_3"),
+    Path(r"C:\Users\tient\Downloads\Group_23\anylabeling_workspace\Video_1"),
+    Path(r"C:\Users\tient\Downloads\Group_23\anylabeling_workspace\Video_0"),
+    Path(r"C:\Users\tient\Downloads\Group_23\anylabeling_workspace\Video_4"),
+]
+
+
+def _find_matching_image(frame_name: str, image_map: Dict[str, Any]) -> Optional[Any]:
+    """Tìm ảnh tương ứng với frame_name trong ảnh đã upload hoặc thư mục cục bộ."""
+    stem = Path(frame_name).stem
+    stem_lower = stem.lower()
+
+    if image_map:
+        # 1. Khớp chính xác tên file
+        if frame_name in image_map:
+            return image_map[frame_name]
+        if stem in image_map:
+            return image_map[stem]
+        # 2. Khớp không phân biệt hoa thường
+        for k, v in image_map.items():
+            if k.lower() == stem_lower or Path(k).stem.lower() == stem_lower:
+                return v
+        # 3. Khớp chuỗi số frame (ví dụ: '0160' trong 'Video_3_frame_0160')
+        import re
+        m = re.search(r'(\d{3,5})', stem)
+        if m:
+            num = m.group(1)
+            for k, v in image_map.items():
+                if num in k:
+                    return v
+
+    # Fallback: Tự động tìm trong các thư mục ảnh cục bộ của dự án
+    for d in LOCAL_IMAGE_DIRS:
+        if not d.exists():
+            continue
+        for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+            cand = d / f"{stem}{ext}"
+            if cand.exists():
+                return str(cand)
+            # Thử tìm theo frame number
+            import re
+            m = re.search(r'(\d{3,5})', stem)
+            if m:
+                pattern = f"*{m.group(1)}*{ext}"
+                matches = list(d.glob(pattern))
+                if matches:
+                    return str(matches[0])
+
+    return None
+
+
+def _load_image(img_ref: Any) -> Optional[Image.Image]:
+    """Mở ảnh an toàn từ chuỗi đường dẫn, Path, hoặc UploadedFile Streamlit."""
+    if img_ref is None:
+        return None
+    try:
+        if isinstance(img_ref, (str, Path)):
+            p = Path(img_ref)
+            if p.exists():
+                return Image.open(p).convert("RGB")
+        elif hasattr(img_ref, "seek"):
+            img_ref.seek(0)
+            img = Image.open(img_ref).convert("RGB")
+            img_ref.seek(0)
+            return img
+    except Exception as ex:
+        logger.warning("Không thể load ảnh: %s", ex)
+    return None
+
+
+def _read_file_bytes(
+    file_bytes: bytes,
+    filename: str,
+    width: int = 1920,
+    height: int = 1080,
+    class_names: Optional[List[str]] = None,
+) -> Optional[List[FrameData]]:
+    """Parse bytes từ một file upload thành List[FrameData].
+    Hỗ trợ:
+      - .json: BDD100K JSON
+      - .txt: Thử BDD100K JSON trước, nếu không được thì tự động parse định dạng YOLO
+      - .xml: Trích xuất JSON nhúng nếu có
+    """
+    name = filename.lower()
+    try:
+        text = file_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = file_bytes.decode("latin-1")
+        except Exception:
+            return None
+
+    # 1. JSON
+    if name.endswith(".json"):
+        try:
+            return parse_bdd100k_text(text)
+        except Exception:
+            pass
+
+    # 2. TXT (BDD100K JSON hoặc YOLO Format)
+    if name.endswith(".txt"):
+        # Thử parse JSON trước (phòng trường hợp CVAT export JSON lưu đuôi txt)
+        try:
+            return parse_bdd100k_text(text)
+        except Exception:
+            pass
+
+        # Parse theo định dạng YOLO (BBox hoặc Polygon)
+        try:
+            stem = Path(filename).stem
+            # Tạo frame_name có đuôi ảnh để dễ map với ảnh minh họa
+            frame_name = stem if stem.lower().endswith((".jpg", ".png", ".jpeg")) else f"{stem}.jpg"
+            frame_data = parse_yolo_text(
+                text=text,
+                frame_name=frame_name,
+                width=width,
+                height=height,
+                class_names=class_names,
+            )
+            return [frame_data]
+        except Exception:
+            return None
+
+    # 3. XML (nếu có nhúng JSON)
+    if name.endswith(".xml"):
+        import re
+        m = re.search(r'\[.*\]', text, re.DOTALL)
+        if m:
+            try:
+                return parse_bdd100k_text(m.group(0))
+            except Exception:
+                pass
+        return None
+
+    return None
+
+
+def _scan_folder(
+    folder_path: str,
+    default_w: int = 1920,
+    default_h: int = 1080,
+) -> Tuple[List[Tuple[str, List[FrameData]]], Optional[List[str]]]:
+    """Quét folder, tự động nhận diện classes.txt, file JSON và file TXT YOLO."""
+    results: List[Tuple[str, List[FrameData]]] = []
+    p = Path(folder_path)
+    if not p.is_dir():
+        return results, None
+
+    # 1. Đọc classes.txt nếu có
+    detected_classes = None
+    for cf in ["classes.txt", "names.txt", "obj.names"]:
+        cf_path = p / cf
+        if cf_path.exists():
+            try:
+                detected_classes = [l.strip() for l in cf_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+                break
+            except Exception:
+                pass
+
+    # 2. Quét file JSON
+    for fp in sorted(p.glob("*.json")):
+        try:
+            frames = load_bdd100k(fp)
+            if frames:
+                results.append((fp.name, frames))
+        except Exception:
+            pass
+
+    # 3. Quét file TXT (YOLO)
+    for fp in sorted(p.glob("*.txt")):
+        if fp.name.lower() in ("classes.txt", "names.txt", "obj.names", "requirements.txt"):
+            continue
+        try:
+            # Thử xem có ảnh tương ứng để lấy đúng kích thước thật
+            w, h = default_w, default_h
+            for img_ext in [".jpg", ".jpeg", ".png", ".webp"]:
+                cand = fp.with_suffix(img_ext)
+                if cand.exists():
+                    try:
+                        with Image.open(cand) as img_obj:
+                            w, h = img_obj.size
+                        break
+                    except Exception:
+                        pass
+            raw_bytes = fp.read_bytes()
+            frames = _read_file_bytes(raw_bytes, fp.name, width=w, height=h, class_names=detected_classes)
+            if frames:
+                results.append((fp.name, frames))
+        except Exception:
+            pass
+
+    return results, detected_classes
+
+
+# ---------------------------------------------------------------------------
+# Trợ lý AI: Tự động soi vật thể BỎ SÓT (False Negative) trong ảnh
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def _load_ai_detector():
+    """Nạp model YOLOv8 cục bộ để phát hiện vật thể bị bỏ sót trong ảnh."""
+    candidates = [
+        Path(__file__).parent / "yolov8n.pt",
+        Path(r"C:\Users\tient\Downloads\labeling-team-template-main\source-tool\QC_tool\yolov8n.pt"),
+        Path(r"C:\Users\tient\Downloads\Group_23\yolov8n.pt"),
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                from ultralytics import YOLO
+                m = YOLO(str(p))
+                return m
+            except Exception as e:
+                logger.warning("Lỗi nạp YOLO từ %s: %s", p, e)
+    return None
+
+
+def _detect_missed_objects(
+    img_pil: Image.Image,
+    user_objects: List[LabeledObject],
+    model,
+    conf_thresh: float = 0.25,
+) -> List[Dict[str, Any]]:
+    """Dùng AI quét ảnh và tìm các vật thể xe/người chưa được gán nhãn."""
+    if model is None or img_pil is None:
+        return []
+    TARGET_CLASSES = {"car", "truck", "bus", "motorcycle", "person", "bicycle"}
+    try:
+        res = model(img_pil, conf=conf_thresh, verbose=False)
+        if not res or len(res[0].boxes) == 0:
+            return []
+        boxes = res[0].boxes
+        missed = []
+        for b in boxes:
+            cls_id = int(b.cls[0])
+            cls_name = model.names[cls_id]
+            if cls_name.lower() not in TARGET_CLASSES:
+                continue
+            x1, y1, x2, y2 = b.xyxy[0].tolist()
+            conf = float(b.conf[0])
+            ai_box = BBox2D(x1, y1, x2, y2)
+
+            # Kiểm tra xem có trùng với bất kỳ box nào người dùng đã vẽ không
+            has_match = False
+            for uobj in user_objects:
+                if uobj.box2d is not None and ai_box.iou(uobj.box2d) > 0.15:
+                    has_match = True
+                    break
+            if not has_match:
+                missed.append({
+                    "category": cls_name,
+                    "confidence": conf,
+                    "box2d": ai_box,
+                })
+        return missed
+    except Exception as ex:
+        logger.warning("Lỗi AI cross-check: %s", ex)
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -83,32 +365,159 @@ st.sidebar.title("⚙️ Cấu hình QC")
 
 # 1. Chọn nguồn dữ liệu
 data_source = st.sidebar.radio(
-    "Nguồn file nhãn BDD100K:",
-    options=["⚡ Dùng dữ liệu mẫu (sample_with_errors.json)", "📁 Tải lên file JSON mới"],
+    "Nguồn dữ liệu nhãn:",
+    options=[
+        "⚡ Dùng dữ liệu mẫu",
+        "📂 Upload nhiều file (JSON / TXT YOLO / XML)",
+        "🗂️ Quét cả thư mục (nhập đường dẫn)",
+    ],
     index=0,
 )
 
-raw_json_str = None
-file_display_name = ""
+# Tùy chọn độ phân giải mặc định (dùng khi file nhãn là YOLO txt)
+canvas_res = st.sidebar.selectbox(
+    "📐 Độ phân giải khung hình (YOLO):",
+    options=["1920x1080 (Full HD)", "1280x720 (HD BDD100K)", "2560x1440 (2K)"],
+    index=0,
+    help="Tọa độ YOLO được chuẩn hóa (0..1), cần kích thước ảnh để tính ra pixel.",
+)
+default_w = 1920 if "1920" in canvas_res else (1280 if "1280" in canvas_res else 2560)
+default_h = 1080 if "1080" in canvas_res else (720 if "720" in canvas_res else 1440)
+
+# Tải ảnh minh họa đa file (tùy chọn)
+uploaded_images_raw = st.sidebar.file_uploader(
+    "🖼️ Tải ảnh minh họa gốc (Tùy chọn, nhiều ảnh):",
+    type=["jpg", "jpeg", "png", "webp", "bmp"],
+    accept_multiple_files=True,
+    help=(
+        "Upload ảnh gốc tương ứng với frame để hiển thị viền lỗi trên ảnh thật.\n"
+        "Tên file ảnh khớp với tên frame (ví dụ: Video_3_frame_0160.jpg)."
+    ),
+)
+# Xây dựng dict: {tên_ảnh -> file_object}
+uploaded_image_map: Dict[str, Any] = {}
+if uploaded_images_raw:
+    for _img_f in uploaded_images_raw:
+        uploaded_image_map[_img_f.name] = _img_f
+        uploaded_image_map[Path(_img_f.name).stem] = _img_f
+    st.sidebar.success(f"✅ Đã tải **{len(uploaded_images_raw)} ảnh** minh họa")
+
+# Lưu kết quả parse: list of (filename, frames)
+all_sources: List[Tuple[str, List[FrameData]]] = []
+file_display_name = "batch"
 
 SAMPLE_PATH = Path(__file__).parent / "data_sample" / "sample_with_errors.json"
 
-if data_source == "⚡ Dùng dữ liệu mẫu (sample_with_errors.json)":
+if data_source == "⚡ Dùng dữ liệu mẫu":
     if SAMPLE_PATH.exists():
-        raw_json_str = SAMPLE_PATH.read_text(encoding="utf-8")
-        file_display_name = "data_sample/sample_with_errors.json"
-        st.sidebar.success("✅ Đã nạp file mẫu sẵn có")
+        try:
+            frames_sample = load_bdd100k(SAMPLE_PATH)
+            all_sources.append(("sample_with_errors.json", frames_sample))
+            file_display_name = "sample_with_errors"
+            st.sidebar.success("✅ Đã nạp file mẫu sẵn có")
+        except Exception as ex:
+            st.sidebar.error(f"Lỗi đọc file mẫu: {ex}")
     else:
         st.sidebar.error("Không tìm thấy file sample_with_errors.json")
-else:
-    uploaded_file = st.sidebar.file_uploader("Chọn file JSON BDD100K hoặc CVAT export:", type=["json"])
-    if uploaded_file is not None:
-        raw_json_str = uploaded_file.getvalue().decode("utf-8")
-        file_display_name = uploaded_file.name
-        st.sidebar.success(f"✅ Đã tải: {uploaded_file.name}")
 
-# Tải ảnh minh họa (tùy chọn)
-uploaded_image = st.sidebar.file_uploader("🖼️ Tải ảnh minh họa gốc (Tùy chọn):", type=["jpg", "jpeg", "png"])
+elif data_source == "📂 Upload nhiều file (JSON / TXT YOLO / XML)":
+    st.sidebar.caption(
+        "Chọn **một hoặc nhiều file** cùng lúc.  \n"
+        "Hỗ trợ: `.json`, `.txt` (BDD100K hoặc YOLO), `.xml`"
+    )
+    uploaded_files = st.sidebar.file_uploader(
+        "Chọn file nhãn:",
+        type=["json", "txt", "xml"],
+        accept_multiple_files=True,
+        help="Giữ Ctrl (Windows) hoặc Cmd (Mac) để chọn nhiều file cùng lúc.",
+    )
+    if uploaded_files:
+        # Bước A: Tìm classes.txt trong danh sách upload nếu có
+        custom_classes: Optional[List[str]] = None
+        for uf in uploaded_files:
+            if uf.name.lower() in ("classes.txt", "names.txt", "obj.names"):
+                try:
+                    custom_classes = [l.strip() for l in uf.getvalue().decode("utf-8").splitlines() if l.strip()]
+                    st.sidebar.info(f"🏷️ Đã nhận diện classes: {', '.join(custom_classes[:5])}")
+                except Exception:
+                    pass
+
+        # Bước B: Parse từng file nhãn
+        ok_count = 0
+        fail_names = []
+        for uf in uploaded_files:
+            if uf.name.lower() in ("classes.txt", "names.txt", "obj.names"):
+                continue  # Bỏ qua file khai báo classes, không coi là frame nhãn
+
+            # Ưu tiên lấy kích thước thật từ ảnh tương ứng đã upload
+            cur_w, cur_h = default_w, default_h
+            matched_img = _find_matching_image(uf.name, uploaded_image_map)
+            if matched_img:
+                try:
+                    with Image.open(matched_img) as _tmp_img:
+                        cur_w, cur_h = _tmp_img.size
+                except Exception:
+                    pass
+
+            frames_parsed = _read_file_bytes(
+                uf.getvalue(),
+                uf.name,
+                width=cur_w,
+                height=cur_h,
+                class_names=custom_classes,
+            )
+            if frames_parsed:
+                all_sources.append((uf.name, frames_parsed))
+                ok_count += 1
+            else:
+                fail_names.append(uf.name)
+
+        if ok_count:
+            st.sidebar.success(f"✅ Đã nạp thành công {ok_count} / {len(uploaded_files)} file")
+            file_display_name = "_".join(Path(f.name).stem for f in uploaded_files[:3])
+        if fail_names:
+            st.sidebar.warning(f"⚠️ Không parse được: {', '.join(fail_names)}")
+
+else:  # Quét thư mục
+    st.sidebar.caption(
+        "Nhập đường dẫn thư mục chứa file nhãn.  \n"
+        "Tool sẽ tự động tìm tất cả `.json`, `.txt` (YOLO) bên trong."
+    )
+    folder_input = st.sidebar.text_input(
+        "Đường dẫn thư mục:",
+        placeholder=r"Ví dụ: C:\Users\...\Video_3",
+    )
+    scan_btn = st.sidebar.button("🔍 Quét thư mục", use_container_width=True)
+    if scan_btn and folder_input:
+        with st.sidebar:
+            with st.spinner("Đang quét..."):
+                folder_sources, folder_classes = _scan_folder(
+                    folder_input.strip(),
+                    default_w=default_w,
+                    default_h=default_h,
+                )
+        if folder_sources:
+            all_sources = folder_sources
+            file_display_name = Path(folder_input.strip()).name
+            total_frames_found = sum(len(frs) for _, frs in folder_sources)
+            st.sidebar.success(
+                f"✅ Tìm thấy **{len(folder_sources)} file** · "
+                f"**{total_frames_found} frames** trong `{Path(folder_input.strip()).name}/`"
+            )
+            if folder_classes:
+                st.sidebar.info(f"🏷️ Classes: {', '.join(folder_classes[:5])}")
+        else:
+            st.sidebar.warning(
+                "Không tìm thấy file nhãn hợp lệ trong thư mục này.  \n"
+                "Kiểm tra đường dẫn và định dạng file."
+            )
+    elif scan_btn:
+        st.sidebar.warning("Vui lòng nhập đường dẫn thư mục.")
+
+    if all_sources:
+        with st.sidebar.expander(f"📄 {len(all_sources)} file tìm thấy", expanded=False):
+            for fname, frs in all_sources:
+                st.caption(f"• **{fname}** — {len(frs)} frames")
 
 # 2. Bộ lọc Rules
 st.sidebar.markdown("---")
@@ -117,6 +526,7 @@ st.sidebar.subheader("🎯 Chọn bộ luật kiểm tra")
 enable_bbox = st.sidebar.checkbox("Kiểm tra Bounding Box (B01 - B04)", value=True)
 enable_poly = st.sidebar.checkbox("Kiểm tra Polygon (P01 - P03)", value=True)
 enable_attr = st.sidebar.checkbox("Kiểm tra Thuộc tính & Trùng lặp (A01 - A03)", value=True)
+enable_seq = st.sidebar.checkbox("Kiểm tra Chuỗi Video (T01 - T02: Bỏ sót / Lệch)", value=True)
 
 active_rules = []
 if enable_bbox:
@@ -126,7 +536,58 @@ if enable_poly:
 if enable_attr:
     active_rules.extend(ALL_ATTRIBUTE_RULES)
 
-st.sidebar.info(f"Đang kích hoạt: **{len(active_rules)} / 10 rules**")
+active_seq_rules = ALL_SEQUENCE_RULES if enable_seq else []
+total_rules_active = len(active_rules) + len(active_seq_rules)
+
+st.sidebar.info(f"Đang kích hoạt: **{total_rules_active} / 12 rules**")
+
+# Tích hợp AI Detector để soi lỗi gán thiếu
+ai_model = _load_ai_detector()
+enable_ai_check = False
+ai_conf = 0.35
+
+if ai_model is not None:
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🤖 Trợ lý AI Soi Lỗi Bỏ Sót")
+    enable_ai_check = st.sidebar.checkbox(
+        "Bật AI soi xe/người BỎ SÓT",
+        value=True,
+        help="Dùng YOLOv8 quét ảnh và khoanh vùng các vật thể bạn chưa gán nhãn.",
+    )
+    if enable_ai_check:
+        ai_conf = st.sidebar.slider("Độ nhạy AI (Confidence):", 0.20, 0.70, 0.35, 0.05)
+
+# Nút RUN (Checking) và RESET (Reload) trên Sidebar
+st.sidebar.markdown("---")
+btn_col1, btn_col2 = st.sidebar.columns([3, 2])
+run_btn = btn_col1.button(
+    "🚀 Checking",
+    use_container_width=True,
+    type="primary",
+    disabled=not all_sources,
+    help="Bắt đầu chạy kiểm tra QC trên các file đã nạp",
+)
+reset_btn = btn_col2.button(
+    "🔄 Reload",
+    use_container_width=True,
+    help="Tải lại / Xóa cache kết quả kiểm tra",
+)
+
+# Quản lý Session State
+if "qc_report" not in st.session_state:
+    st.session_state["qc_report"] = None
+    st.session_state["qc_frames"] = None
+    st.session_state["qc_sources"] = None
+    st.session_state["qc_rules_snapshot"] = None
+    st.session_state["qc_display_name"] = ""
+
+if reset_btn:
+    st.session_state["qc_report"] = None
+    st.session_state["qc_frames"] = None
+    st.session_state["qc_sources"] = None
+    st.session_state["qc_rules_snapshot"] = None
+    st.session_state["qc_display_name"] = ""
+    st.rerun()
 
 # Thông tin nhóm
 st.sidebar.markdown("---")
@@ -138,25 +599,129 @@ st.sidebar.caption("• Đào Ngọc Hiếu (Leader / Pipeline)\n• Đoàn Văn
 # Main Content
 # ---------------------------------------------------------------------------
 st.markdown('<div class="main-header">🛡️ BDD100K 2D Annotation Quality Control</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Hệ thống Linter & Kiểm tra chất lượng gán nhãn tự động dành cho Annotator & Reviewer (Mã đề: N2-04A)</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Hệ thống Linter & Kiểm tra chất lượng gán nhãn tự động — Hỗ trợ JSON BDD100K & TXT YOLO đa file (Mã đề: N2-04A)</div>', unsafe_allow_html=True)
 
-if not raw_json_str:
-    st.info("👈 Vui lòng chọn hoặc tải lên file JSON ở thanh bên trái để bắt đầu kiểm tra.")
+if not all_sources:
+    st.info(
+        "👈 Vui lòng chọn nguồn dữ liệu ở thanh bên trái để bắt đầu kiểm tra.\n\n"
+        "**Tính năng hỗ trợ:**\n"
+        "- **Upload nhiều file cùng lúc:** Giữ `Ctrl` hoặc `Cmd` để chọn nhiều file `.json` hoặc `.txt` (YOLO).\n"
+        "- **Đa định dạng:** Tự động phát hiện JSON BDD100K và text YOLO (`class xc yc w h`).\n"
+        "- **Kèm file nhãn:** Tải kèm `classes.txt` để tự động ánh xạ class name thật.\n"
+        "- **Ảnh minh họa:** Tải kèm các ảnh `.jpg` / `.png` để soi lỗi trực quan trên canvas."
+    )
     st.stop()
 
-# Parse JSON
-try:
-    frames = parse_bdd100k_text(raw_json_str)
-except Exception as e:
-    st.error(f"❌ Lỗi khi đọc file JSON: {e}")
+# Helper thực thi QC
+def _execute_qc():
+    all_frames_run: List[FrameData] = []
+    for _src_name, _src_frames in all_sources:
+        all_frames_run.extend(_src_frames)
+
+    with st.spinner("⏳ Đang chạy QC & kiểm tra chất lượng (Linter + AI)... Vui lòng chờ."):
+        import time
+        _t0 = time.time()
+        _report = run_qc(
+            all_frames_run,
+            rules=active_rules,
+            sequence_rules=active_seq_rules,
+        )
+
+        # Quét AI phát hiện vật thể bỏ sót (RULE_AI01)
+        if enable_ai_check and ai_model is not None:
+            for frame in all_frames_run:
+                img_ref = _find_matching_image(frame.name, uploaded_image_map)
+                if img_ref is not None:
+                    img_obj = _load_image(img_ref)
+                    if img_obj is not None:
+                        missed_list = _detect_missed_objects(
+                            img_obj,
+                            frame.objects,
+                            ai_model,
+                            conf_thresh=ai_conf,
+                        )
+                        for m_idx, m_obj in enumerate(missed_list, 1):
+                            mbx = m_obj["box2d"]
+                            m_cat = m_obj["category"]
+                            m_conf = m_obj["confidence"]
+                            _report.add(QCError(
+                                rule_id="RULE_AI01",
+                                severity="ERROR" if m_conf >= 0.60 else "WARNING",
+                                frame_name=frame.name,
+                                object_id=f"ai_missed_{m_idx:02d}",
+                                category=m_cat,
+                                message=f"AI phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})",
+                            ))
+
+        _elapsed = time.time() - _t0
+
+    st.session_state["qc_report"] = _report
+    st.session_state["qc_frames"] = all_frames_run
+    st.session_state["qc_sources"] = all_sources
+    st.session_state["qc_rules_snapshot"] = active_rules
+    st.session_state["qc_display_name"] = file_display_name
+    st.toast(f"✅ Hoàn thành trong {_elapsed:.2f}s — phát hiện {len(_report.errors)} vấn đề", icon="🛡️")
+
+# Khi người dùng bấm nút Checking trên Sidebar
+if run_btn:
+    _execute_qc()
+
+# Lấy kết quả từ session
+report = st.session_state.get("qc_report")
+frames = st.session_state.get("qc_frames")
+file_display_name_final = st.session_state.get("qc_display_name", file_display_name)
+cached_sources = st.session_state.get("qc_sources", all_sources)
+
+if report is None:
+    # Hiển thị trang chờ với 2 NÚT TO RÕ: CHECKING & RELOAD
+    st.markdown("---")
+    n_files = len(all_sources)
+    n_frames = sum(len(frs) for _, frs in all_sources)
+    n_imgs = len(uploaded_image_map) // 2 if uploaded_image_map else 0
+
+    st.subheader("📋 Sẵn sàng kiểm tra chất lượng dữ liệu")
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("📄 File nhãn đã nạp", str(n_files))
+    r2.metric("🎬 Frames phát hiện", str(n_frames))
+    r3.metric("🖼️ Ảnh minh họa", str(n_imgs))
+    r4.metric("⚙️ Rules kích hoạt", f"{len(active_rules)} / 10")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    c_btn1, c_btn2, _ = st.columns([3, 2, 4])
+    with c_btn1:
+        if st.button("🚀 BẮT ĐẦU KIỂM TRA (CHECKING)", type="primary", use_container_width=True):
+            _execute_qc()
+            st.rerun()
+    with c_btn2:
+        if st.button("🔄 TẢI LẠI (RELOAD)", use_container_width=True):
+            st.session_state["qc_report"] = None
+            st.rerun()
+
     st.stop()
+    import sys
+    sys.exit(0)
 
-# Thực thi QC Engine
-report = run_qc(frames, rules=active_rules)
 
 # ---------------------------------------------------------------------------
-# Thẻ Thống kê KPI tóm tắt
+# Thẻ Thống kê KPI tóm tắt & Báo cáo kết quả
 # ---------------------------------------------------------------------------
+if report is not None:
+    # Thanh thông tin nguồn và nút Reload nhanh
+    tcol_info, tcol_reload = st.columns([8, 2])
+with tcol_info:
+    if len(all_sources) > 1:
+        st.caption(
+            f"📦 Đang phân tích **{len(all_sources)} file** | "
+            + " · ".join(f"`{n}`" for n, _ in all_sources[:5])
+            + (f" ... và {len(all_sources)-5} file khác" if len(all_sources) > 5 else "")
+        )
+    else:
+        st.caption("📦 Đã hoàn thành phân tích dữ liệu")
+with tcol_reload:
+    if st.button("🔄 Reload lại", use_container_width=True, help="Xóa cache và chạy kiểm tra lại"):
+        st.session_state["qc_report"] = None
+        st.rerun()
+
 col1, col2, col3, col4, col5 = st.columns(5)
 
 total_issues = len(report.errors)
@@ -254,7 +819,7 @@ with tab_list:
             st.download_button(
                 label="📄 Tải Báo cáo CSV",
                 data=csv_data,
-                file_name=f"qc_report_{Path(file_display_name).stem}.csv",
+                file_name=f"qc_report_{Path(file_display_name_final).stem or file_display_name_final}.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
@@ -263,7 +828,7 @@ with tab_list:
             st.download_button(
                 label="🌐 Tải Báo cáo HTML Dashboard",
                 data=html_data,
-                file_name=f"qc_report_{Path(file_display_name).stem}.html",
+                file_name=f"qc_report_{Path(file_display_name_final).stem or file_display_name_final}.html",
                 mime="text/html",
                 use_container_width=True,
             )
@@ -281,6 +846,33 @@ with tab_visual:
     selected_frame = next((f for f in frames if f.name == selected_frame_name), None)
 
     if selected_frame:
+        # Nền canvas hoặc ảnh thực tế
+        matched_img_file = _find_matching_image(selected_frame_name, uploaded_image_map)
+        loaded_img = _load_image(matched_img_file)
+
+        # AI Missed Object Detection
+        missed_objects: List[Dict[str, Any]] = []
+        if enable_ai_check and loaded_img is not None and ai_model is not None:
+            missed_objects = _detect_missed_objects(
+                loaded_img,
+                selected_frame.objects,
+                ai_model,
+                conf_thresh=ai_conf,
+            )
+
+        if enable_ai_check and (matched_img_file is not None or loaded_img is not None):
+            mcol1, mcol2, mcol3 = st.columns(3)
+            mcol1.metric("🎯 Đã gán nhãn", f"{len(selected_frame.objects)} objects")
+            mcol2.metric(
+                "🚨 AI phát hiện BỎ SÓT",
+                f"{len(missed_objects)} objects",
+                delta=f"+{len(missed_objects)} thiếu" if missed_objects else "Đủ",
+                delta_color="inverse" if missed_objects else "normal",
+            )
+            total_detected = len(selected_frame.objects) + len(missed_objects)
+            cov = (len(selected_frame.objects) / total_detected * 100) if total_detected > 0 else 100
+            mcol3.metric("📊 Tỷ lệ bao phủ nhãn", f"{cov:.1f}%")
+
         # Tìm các lỗi ứng với frame này
         frame_errors: Dict[str, List[QCError]] = {}
         for err in report.errors:
@@ -294,18 +886,14 @@ with tab_visual:
         canvas_w = selected_frame.width
         canvas_h = selected_frame.height
 
-        # Nền canvas hoặc ảnh thực tế
-        if uploaded_image:
-            try:
-                img = Image.open(uploaded_image).convert("RGB")
-                ax.imshow(img)
-            except Exception:
-                ax.imshow([[0]], extent=[0, canvas_w, canvas_h, 0], cmap="gray", aspect="auto")
+        if loaded_img is not None:
+            ax.imshow(loaded_img)
+            ax.set_xlim(0, loaded_img.width)
+            ax.set_ylim(loaded_img.height, 0)
         else:
-            # Tạo nền đen/tối giả lập khung hình 1280x720
             ax.set_facecolor("#0f172a")
             ax.set_xlim(0, canvas_w)
-            ax.set_ylim(canvas_h, 0)  # Gốc (0,0) ở góc trên bên trái chuẩn CV
+            ax.set_ylim(canvas_h, 0)
 
         # Vẽ từng object
         for obj in selected_frame.objects:
@@ -375,7 +963,32 @@ with tab_visual:
                     bbox=dict(facecolor="#1e293b", edgecolor=edge_color, boxstyle="round,pad=0.2", alpha=0.85),
                 )
 
-        ax.set_title(f"Khung hình: {selected_frame_name} ({len(selected_frame.objects)} objects)", color="white", fontsize=11)
+        # Vẽ các vật thể AI phát hiện bị BỎ SÓT (Khung viền cam nét đứt)
+        for m_idx, m_obj in enumerate(missed_objects, start=1):
+            mbx = m_obj["box2d"]
+            m_cat = m_obj["category"]
+            m_conf = m_obj["confidence"]
+            rect = patches.Rectangle(
+                (mbx.x1, mbx.y1),
+                mbx.width,
+                mbx.height,
+                linewidth=2.2,
+                edgecolor="#f97316",
+                facecolor="none",
+                linestyle="--",
+            )
+            ax.add_patch(rect)
+            ax.text(
+                max(5, mbx.x1),
+                max(18, mbx.y1 - 5),
+                f"⚠️ [BỎ SÓT] {m_cat} ({m_conf:.0%})",
+                color="#ea580c",
+                fontsize=8,
+                weight="bold",
+                bbox=dict(facecolor="#fff7ed", edgecolor="#ea580c", boxstyle="round,pad=0.2", alpha=0.9),
+            )
+
+        ax.set_title(f"Khung hình: {selected_frame_name} ({len(selected_frame.objects)} objects đã gán | {len(missed_objects)} AI phát hiện bỏ sót)", color="white", fontsize=11)
         ax.set_xticks(range(0, canvas_w + 1, 200))
         ax.set_yticks(range(0, canvas_h + 1, 100))
         ax.tick_params(colors="#94a3b8", labelsize=8)
@@ -384,6 +997,13 @@ with tab_visual:
         fig.tight_layout()
 
         st.pyplot(fig)
+
+        # Hiển thị cảnh báo nếu AI phát hiện bỏ sót vật thể
+        if missed_objects:
+            st.warning(
+                f"🚨 **Phát hiện {len(missed_objects)} vật thể chưa được gán nhãn trong khung hình này!**  \n"
+                f"Các khung viền nét đứt **màu cam** ở trên là những vị trí AI phát hiện thấy `{', '.join(set(m['category'] for m in missed_objects))}` nhưng bạn chưa vẽ nhãn."
+            )
 
         # Hiển thị các lỗi cụ thể của Frame này
         cur_errs = [e for e in report.errors if e.frame_name == selected_frame_name]
@@ -459,18 +1079,22 @@ with tab_charts:
 # TAB 4: Hướng dẫn & Quy chuẩn 10 Rules
 # ---------------------------------------------------------------------------
 with tab_docs:
-    st.subheader("Quy chuẩn 10 Rules kiểm tra chất lượng BDD100K")
+    st.subheader("Quy chuẩn 12 Rules kiểm tra chất lượng BDD100K & Video Tracking (Mã đề: N2-04A)")
     st.markdown("""
-| Nhóm | Mã Rule | Tên quy tắc | Mô tả chi tiết | Mức độ | Cách khắc phục |
+| Nhóm | Mã Rule | Tên quy tắc | Mô tả chi tiết | Phân loại | Mức độ |
 |---|---|---|---|---|---|
-| **BBox** | `RULE_B01` | **Out of Bounds** | Tọa độ box vượt ra ngoài khung hình (x<0, y<0, x>1280, y>720) | 🔴 ERROR | Kéo box nằm trọn trong giới hạn ảnh |
-| **BBox** | `RULE_B02` | **Inverted / Zero Box** | Tọa độ bị đảo ngược ($x_2 \le x_1$ hoặc $y_2 \le y_1$) hoặc $w, h = 0$ | 🔴 ERROR | Xóa box chấm lỗi hoặc vẽ lại |
-| **BBox** | `RULE_B03` | **Too Small Box** | Diện tích $w \times h < 64\\text{px}^2$, nghi ngờ chấm nhầm/nhiễu | 🟡 WARN | Kiểm tra vật thể có thật sự nhận diện được không |
-| **BBox** | `RULE_B04` | **Abnormal Ratio** | Tỉ lệ khung hình dị thường ($w/h > 25$ hoặc $h/w > 25$) | 🟡 WARN | Kiểm tra lại viền box bị kéo dài quá mức |
-| **Poly** | `RULE_P01` | **Insufficient Vertices** | Đa giác polygon có ít hơn 3 đỉnh | 🔴 ERROR | Bổ sung thêm đỉnh hoặc xóa polygon hỏng |
-| **Poly** | `RULE_P02` | **Self-Intersection** | Đa giác bị xoắn nơ, vắt chéo viền (tự cắt chính nó) | 🔴 ERROR | Nắn chỉnh các đỉnh để đường viền không cắt nhau |
-| **Poly** | `RULE_P03` | **Mask vs Box Mismatch** | Khung bao polygon lệch quá nhiều so với BBox (IoU < 0.7) | 🟡 WARN | Điều chỉnh lại BBox hoặc viền polygon khớp nhau |
-| **Attr** | `RULE_A01` | **Duplicate Object** | Hai box cùng class đè lên nhau với IoU > 0.85 (vẽ trùng lặp) | 🔴 ERROR | Xóa bớt 1 box bị vẽ đè |
-| **Attr** | `RULE_A02` | **Missing Attributes** | Thiếu thuộc tính bắt buộc (`occluded`, `truncated`) | 🟡 WARN | Điền đầy đủ thuộc tính trong bảng thuộc tính CVAT |
-| **Attr** | `RULE_A03` | **Traffic Light Color** | Vật thể `traffic light` nhưng sai màu hoặc thiếu màu | 🔴 ERROR | Chọn đúng màu đèn: `red`, `green`, `yellow`, `none` |
+| **BBox** | `RULE_B01` | **Out of Bounds** | Tọa độ box vượt ra ngoài khung hình ($x<0, y<0, x>W, y>H$) | 📐 **LỆCH** | 🔴 ERROR |
+| **BBox** | `RULE_B02` | **Inverted / Zero Box** | Tọa độ bị đảo ngược ($x_2 \le x_1$ hoặc $y_2 \le y_1$) hoặc $w, h = 0$ | 📐 **LỖI HÌNH HỌC** | 🔴 ERROR |
+| **BBox** | `RULE_B03` | **Too Small Box** | Diện tích $w \times h < 64\\text{px}^2$, nghi ngờ chấm nhầm/nhiễu | 📐 **RÁC / NHIỄU** | 🟡 WARN |
+| **BBox** | `RULE_B04` | **Abnormal Ratio** | Tỉ lệ khung hình dị thường ($w/h > 25$ hoặc $h/w > 25$) | 📐 **LỆCH DẠNG** | 🟡 WARN |
+| **Poly** | `RULE_P01` | **Insufficient Vertices** | Đa giác polygon có ít hơn 3 đỉnh | 📉 **THIẾU ĐỈNH** | 🔴 ERROR |
+| **Poly** | `RULE_P02` | **Self-Intersection** | Đa giác bị xoắn nơ, vắt chéo viền (tự cắt chính nó) | 📐 **LỖI HÌNH HỌC** | 🔴 ERROR |
+| **Poly** | `RULE_P03` | **Mask vs Box Mismatch** | Khung bao polygon lệch quá nhiều so với BBox (IoU < 0.70) | 📐 **LỆCH VIỀN** | 🟡 WARN |
+| **Attr** | `RULE_A01` | **Duplicate Object** | Hai box cùng class đè lên nhau với IoU > 0.85 (vẽ trùng lặp) | 👥 **TRÙNG LẶP** | 🔴 ERROR |
+| **Attr** | `RULE_A02` | **Missing Attributes** | Thiếu thuộc tính bắt buộc (`occluded`, `truncated`) | 📉 **THIẾU THUỘC TÍNH** | 🟡 WARN |
+| **Attr** | `RULE_A03` | **Traffic Light Color** | Vật thể `traffic light` nhưng sai màu hoặc thiếu màu | 📉 **THIẾU/SAI THUỘC TÍNH** | 🔴 ERROR |
+| **Video** | `RULE_T01` | **Missing Object (Flicker)** | Vật thể xuất hiện ở frame trước & sau nhưng mất dấu ở frame giữa | 📉 **GÁN NHÃN THIẾU** | 🟡 WARN |
+| **Video** | `RULE_T02` | **Position Drift / Jump** | Vị trí box bị nhảy vọt bất thường (> 35% khung hình) trong 1 frame | 📐 **VẼ LỆCH VỊ TRÍ** | 🟡 WARN |
+| **AI Cross** | `RULE_AI01` | **AI Missed Object** | AI phát hiện vật thể (xe/người) có trong ảnh nhưng annotator bỏ sót | 🚨 **BỎ SÓT ĐỐI TƯỢNG** | 🔴 ERROR / 🟡 WARN |
     """)
+
