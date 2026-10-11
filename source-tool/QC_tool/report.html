@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BDD-QC Report - 2026-10-08 16:15:01</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1117;color:#e2e8f0;padding:24px}
+h1{font-size:1.5rem;color:#7dd3fc;margin-bottom:4px}
+.sub{color:#94a3b8;font-size:.82rem;margin-bottom:20px}
+.stats{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.card{background:#1e2535;border-radius:10px;padding:12px 18px;min-width:120px}
+.card .lbl{font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.card .val{font-size:1.7rem;font-weight:700}
+.value-error{color:#f87171}.value-warn{color:#fbbf24}
+.value-ok{color:#34d399}.value-neutral{color:#7dd3fc}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead{background:#1e3a5f}
+th{padding:9px 12px;text-align:left;color:#bae6fd;border-bottom:2px solid #2d4a7a}
+td{padding:7px 12px;border-bottom:1px solid #1e293b;vertical-align:top}
+tr:hover td{background:#1a2640}
+.row-error td{border-left:3px solid #f87171}
+.row-warning td{border-left:3px solid #fbbf24}
+.badge-error{background:#7f1d1d;color:#fca5a5;padding:2px 7px;border-radius:4px;font-size:.73rem;font-weight:600}
+.badge-warning{background:#78350f;color:#fde68a;padding:2px 7px;border-radius:4px;font-size:.73rem;font-weight:600}
+code{background:#1e293b;padding:1px 5px;border-radius:3px;font-size:.78rem;color:#93c5fd}
+.empty{text-align:center;padding:36px;color:#34d399;font-size:1.05rem}
+#search{background:#1e2535;border:1px solid #334155;color:#e2e8f0;padding:7px 13px;
+  border-radius:8px;font-size:.84rem;width:300px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<h1>BDD-QC Tool - Annotation Quality Report</h1>
+<p class="sub">Generated: 2026-10-08 16:15:01</p>
+<div class="stats">
+  <div class="card"><div class="lbl">Frames</div><div class="val value-neutral">1</div></div>
+  <div class="card"><div class="lbl">Objects</div><div class="val value-neutral">9</div></div>
+  <div class="card"><div class="lbl">ERRORs</div><div class="val value-error">5</div></div>
+  <div class="card"><div class="lbl">WARNINGs</div><div class="val value-warn">2</div></div>
+  <div class="card"><div class="lbl">Total Issues</div><div class="val value-error">7</div></div>
+</div>
+<input id="search" type="text" placeholder="Filter by frame / ID / class / rule...">
+<table id="tbl">
+<thead><tr><th>Frame</th><th>Object ID</th><th>Class</th><th>Rule</th><th>Severity</th><th>Detail</th></tr></thead>
+<tbody>
+
+<tr class="row-error"><td>frame_0001.jpg</td><td>obj_02_out_of_bounds</td><td>car</td><td><code>RULE_B01</code></td><td><span class="badge-error">ERROR</span></td><td>Box vượt ngoài khung 1280×720px (x1=-25.0&lt;0, x2=1350.0&gt;1280, y2=800.0&gt;720)</td></tr>
+<tr class="row-error"><td>frame_0001.jpg</td><td>obj_03_zero_size</td><td>pedestrian</td><td><code>RULE_B02</code></td><td><span class="badge-error">ERROR</span></td><td>Tọa độ đảo ngược hoặc rỗng (w=0.0, h=0.0). Yêu cầu x2 &gt; x1 và y2 &gt; y1.</td></tr>
+<tr class="row-warning"><td>frame_0001.jpg</td><td>obj_04_too_small</td><td>traffic sign</td><td><code>RULE_B03</code></td><td><span class="badge-warning">WARN</span></td><td>Box quá nhỏ (diện tích=20.0px² &lt; 64px²). Kích thước: 4.0×5.0px. Kiểm tra xem có phải vật thể thật không.</td></tr>
+<tr class="row-error"><td>frame_0001.jpg</td><td>obj_08_self_intersecting_poly</td><td>rider</td><td><code>RULE_P02</code></td><td><span class="badge-error">ERROR</span></td><td>Polygon tự cắt viền (phát hiện bằng kiểm tra đoạn thẳng thủ công).</td></tr>
+<tr class="row-error"><td>frame_0001.jpg</td><td>obj_05_duplicate_a &amp; obj_05_duplicate_b</td><td>bus</td><td><code>RULE_A01</code></td><td><span class="badge-error">ERROR</span></td><td>Nghi ngờ vẽ trùng lặp: object 'obj_05_duplicate_a' và 'obj_05_duplicate_b' cùng class 'bus' chồng lấn nhau (IoU=0.98 &gt; 0.85).</td></tr>
+<tr class="row-warning"><td>frame_0001.jpg</td><td>obj_06_missing_attributes</td><td>truck</td><td><code>RULE_A02</code></td><td><span class="badge-warning">WARN</span></td><td>Thiếu thuộc tính bắt buộc: ['occluded', 'truncated']. Vui lòng điền đầy đủ trước khi nộp bài.</td></tr>
+<tr class="row-error"><td>frame_0001.jpg</td><td>obj_07_invalid_traffic_light</td><td>traffic light</td><td><code>RULE_A03</code></td><td><span class="badge-error">ERROR</span></td><td>Màu đèn không hợp lệ: 'blue'. Giá trị hợp lệ: ['green', 'none', 'red', 'yellow'].</td></tr>
+
+</tbody>
+</table>
+<script>
+document.getElementById('search').addEventListener('input',function(){
+  const q=this.value.toLowerCase();
+  document.querySelectorAll('#tbl tbody tr').forEach(r=>{
+    r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';
+  });
+});
+</script>
+</body></html>
