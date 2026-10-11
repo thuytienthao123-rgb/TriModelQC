@@ -12,11 +12,11 @@ Rules:
 from __future__ import annotations
 from typing import List
 
-from qc.models import ERROR, WARNING, FrameData, LabeledObject, QCError
+from qc.models import ERROR, WARNING, FrameData, QCError
 from qc.rules.base import BaseRule
 
 # Các class có tỉ lệ dạng dài/mỏng — không áp dụng RULE_B04
-_THIN_CLASSES = {"barrier", "traffic sign", "lane", "drivable area"}
+_THIN_CLASSES = {"barrier", "traffic sign"}
 
 # Ngưỡng diện tích tối thiểu (px²)
 MIN_AREA_PX = 64  # 8 × 8 pixel
