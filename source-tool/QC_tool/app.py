@@ -241,68 +241,41 @@ def _scan_folder(
 
 
 # ---------------------------------------------------------------------------
-# Trợ lý AI: Tự động soi vật thể BỎ SÓT (False Negative) trong ảnh
+# Trợ lý AI: Bộ 3 mô hình (Tri-Model Consensus Ensemble)
 # ---------------------------------------------------------------------------
 @st.cache_resource
 def _load_ai_detector():
-    """Nạp model YOLOv8 cục bộ để phát hiện vật thể bị bỏ sót trong ảnh."""
-    candidates = [
-        Path(__file__).parent / "yolov8n.pt",
-        Path(r"C:\Users\tient\Downloads\labeling-team-template-main\source-tool\QC_tool\yolov8n.pt"),
-        Path(r"C:\Users\tient\Downloads\Group_23\yolov8n.pt"),
-    ]
-    for p in candidates:
-        if p.exists():
-            try:
-                from ultralytics import YOLO
-                m = YOLO(str(p))
-                return m
-            except Exception as e:
-                logger.warning("Lỗi nạp YOLO từ %s: %s", p, e)
+    """Nạp hệ thống Tri-Model Consensus AI Detector."""
+    try:
+        from qc.ai_detector import TriModelQCAssistant
+        assistant = TriModelQCAssistant()
+        if assistant.is_ready():
+            return assistant
+    except Exception as e:
+        logger.warning("Lỗi nạp TriModelQCAssistant: %s", e)
     return None
 
 
-def _detect_missed_objects(
+def _run_ai_qc(
     img_pil: Image.Image,
     user_objects: List[LabeledObject],
-    model,
-    conf_thresh: float = 0.25,
-) -> List[Dict[str, Any]]:
-    """Dùng AI quét ảnh và tìm các vật thể xe/người chưa được gán nhãn."""
-    if model is None or img_pil is None:
-        return []
-    TARGET_CLASSES = {"car", "truck", "bus", "motorcycle", "person", "bicycle"}
+    assistant,
+    conf_thresh: float = 0.35,
+    ensemble_mode: str = "strict",
+) -> Dict[str, Any]:
+    """Chạy phân tích đa mô hình (Tri-Model) và đối chiếu với nhãn người dùng."""
+    if assistant is None or img_pil is None:
+        return {"missed": [], "mismatched": [], "total_ai_detections": 0, "total_user_objects": 0}
     try:
-        res = model(img_pil, conf=conf_thresh, verbose=False)
-        if not res or len(res[0].boxes) == 0:
-            return []
-        boxes = res[0].boxes
-        missed = []
-        for b in boxes:
-            cls_id = int(b.cls[0])
-            cls_name = model.names[cls_id]
-            if cls_name.lower() not in TARGET_CLASSES:
-                continue
-            x1, y1, x2, y2 = b.xyxy[0].tolist()
-            conf = float(b.conf[0])
-            ai_box = BBox2D(x1, y1, x2, y2)
-
-            # Kiểm tra xem có trùng với bất kỳ box nào người dùng đã vẽ không
-            has_match = False
-            for uobj in user_objects:
-                if uobj.box2d is not None and ai_box.iou(uobj.box2d) > 0.15:
-                    has_match = True
-                    break
-            if not has_match:
-                missed.append({
-                    "category": cls_name,
-                    "confidence": conf,
-                    "box2d": ai_box,
-                })
-        return missed
+        return assistant.check_missed_and_mismatched(
+            img_pil=img_pil,
+            user_objects=user_objects,
+            conf_thresh=conf_thresh,
+            ensemble_mode=ensemble_mode,
+        )
     except Exception as ex:
-        logger.warning("Lỗi AI cross-check: %s", ex)
-        return []
+        logger.warning("Lỗi Tri-Model AI cross-check: %s", ex)
+        return {"missed": [], "mismatched": [], "total_ai_detections": 0, "total_user_objects": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -541,21 +514,33 @@ total_rules_active = len(active_rules) + len(active_seq_rules)
 
 st.sidebar.info(f"Đang kích hoạt: **{total_rules_active} / 12 rules**")
 
-# Tích hợp AI Detector để soi lỗi gán thiếu
-ai_model = _load_ai_detector()
+# Tích hợp Tri-Model AI Detector để soi lỗi gán thiếu & sai nhãn
+ai_assistant = _load_ai_detector()
 enable_ai_check = False
 ai_conf = 0.35
+ai_ensemble_mode = "strict"
 
-if ai_model is not None:
+if ai_assistant is not None:
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🤖 Trợ lý AI Soi Lỗi Bỏ Sót")
+    st.sidebar.subheader("🤖 Tri-Model AI QC Assistant")
     enable_ai_check = st.sidebar.checkbox(
-        "Bật AI soi xe/người BỎ SÓT",
+        "Kích hoạt Tri-Model AI QC",
         value=True,
-        help="Dùng YOLOv8 quét ảnh và khoanh vùng các vật thể bạn chưa gán nhãn.",
+        help="Sử dụng bộ 3 mô hình (Tri-Model Ensemble) + Weighted Boxes Fusion (WBF) để phát hiện vật thể bỏ sót và sai nhãn.",
     )
     if enable_ai_check:
+        ai_ensemble_mode = st.sidebar.radio(
+            "Cơ chế hợp nhất (Consensus):",
+            options=["strict", "majority"],
+            format_func=lambda x: "🛡️ Nghiêm ngặt (Cả 3 model đồng thuận)" if x == "strict" else "⚖️ Đa số (Tối thiểu 2/3 model)",
+            help="Chế độ nghiêm ngặt yêu cầu cả 3 mô hình cùng nhận diện và lấy trung bình tọa độ. Chế độ này triệt tiêu hoàn toàn báo động giả, giảm tối đa thời gian reviewer phải rà soát.",
+        )
         ai_conf = st.sidebar.slider("Độ nhạy AI (Confidence):", 0.20, 0.70, 0.35, 0.05)
+
+        with st.sidebar.expander("ℹ️ Thông tin bộ 3 mô hình", expanded=False):
+            for m_key, m_desc in ai_assistant.model_descriptions.items():
+                st.markdown(f"- **{m_key}**: {m_desc}")
+            st.caption("📐 Thuật toán hợp nhất: Weighted Boxes Fusion (WBF)")
 
 # Nút RUN (Checking) và RESET (Reload) trên Sidebar
 st.sidebar.markdown("---")
@@ -627,30 +612,52 @@ def _execute_qc():
             sequence_rules=active_seq_rules,
         )
 
-        # Quét AI phát hiện vật thể bỏ sót (RULE_AI01)
-        if enable_ai_check and ai_model is not None:
+        # Quét Tri-Model AI phát hiện vật thể bỏ sót & sai lệch nhãn (RULE_AI01 & RULE_AI02)
+        if enable_ai_check and ai_assistant is not None:
             for frame in all_frames_run:
                 img_ref = _find_matching_image(frame.name, uploaded_image_map)
                 if img_ref is not None:
                     img_obj = _load_image(img_ref)
                     if img_obj is not None:
-                        missed_list = _detect_missed_objects(
+                        ai_res = _run_ai_qc(
                             img_obj,
                             frame.objects,
-                            ai_model,
+                            ai_assistant,
                             conf_thresh=ai_conf,
+                            ensemble_mode=ai_ensemble_mode,
                         )
-                        for m_idx, m_obj in enumerate(missed_list, 1):
+                        # 1. Báo lỗi vật thể bỏ sót (RULE_AI01)
+                        for m_idx, m_obj in enumerate(ai_res.get("missed", []), 1):
                             mbx = m_obj["box2d"]
                             m_cat = m_obj["category"]
                             m_conf = m_obj["confidence"]
+                            agreed_cnt = m_obj.get("agreement_count", 3)
                             _report.add(QCError(
                                 rule_id="RULE_AI01",
-                                severity="ERROR" if m_conf >= 0.60 else "WARNING",
+                                severity="ERROR" if agreed_cnt >= 3 or m_conf >= 0.60 else "WARNING",
                                 frame_name=frame.name,
                                 object_id=f"ai_missed_{m_idx:02d}",
                                 category=m_cat,
-                                message=f"AI phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})",
+                                message=(
+                                    f"[AI {agreed_cnt}/3 Đồng thuận] Bỏ sót [{m_cat}] tại "
+                                    f"[{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] "
+                                    f"(tọa độ trung bình WBF, độ tin cậy: {m_conf:.0%})"
+                                ),
+                            ))
+
+                        # 2. Báo lỗi nghi vấn sai loại nhãn (RULE_AI02)
+                        for mm_idx, mm_obj in enumerate(ai_res.get("mismatched", []), 1):
+                            _report.add(QCError(
+                                rule_id="RULE_AI02",
+                                severity="WARNING",
+                                frame_name=frame.name,
+                                object_id=mm_obj["user_obj_id"],
+                                category=mm_obj["user_category"],
+                                message=(
+                                    f"Nghi vấn sai nhãn: Người gán là [{mm_obj['user_category']}] "
+                                    f"nhưng AI đồng thuận xác định là [{mm_obj['ai_category']}] "
+                                    f"(IoU {mm_obj['iou']:.0%}, độ tin cậy AI: {mm_obj['confidence']:.0%})"
+                                ),
                             ))
 
         _elapsed = time.time() - _t0
@@ -850,18 +857,22 @@ with tab_visual:
         matched_img_file = _find_matching_image(selected_frame_name, uploaded_image_map)
         loaded_img = _load_image(matched_img_file)
 
-        # AI Missed Object Detection
+        # AI Missed & Mismatched Object Detection
         missed_objects: List[Dict[str, Any]] = []
-        if enable_ai_check and loaded_img is not None and ai_model is not None:
-            missed_objects = _detect_missed_objects(
+        mismatched_objects: List[Dict[str, Any]] = []
+        if enable_ai_check and loaded_img is not None and ai_assistant is not None:
+            ai_tab_res = _run_ai_qc(
                 loaded_img,
                 selected_frame.objects,
-                ai_model,
+                ai_assistant,
                 conf_thresh=ai_conf,
+                ensemble_mode=ai_ensemble_mode,
             )
+            missed_objects = ai_tab_res.get("missed", [])
+            mismatched_objects = ai_tab_res.get("mismatched", [])
 
         if enable_ai_check and (matched_img_file is not None or loaded_img is not None):
-            mcol1, mcol2, mcol3 = st.columns(3)
+            mcol1, mcol2, mcol3, mcol4 = st.columns(4)
             mcol1.metric("🎯 Đã gán nhãn", f"{len(selected_frame.objects)} objects")
             mcol2.metric(
                 "🚨 AI phát hiện BỎ SÓT",
@@ -869,15 +880,20 @@ with tab_visual:
                 delta=f"+{len(missed_objects)} thiếu" if missed_objects else "Đủ",
                 delta_color="inverse" if missed_objects else "normal",
             )
+            mcol3.metric(
+                "⚠️ Nghi vấn SAI NHÃN",
+                f"{len(mismatched_objects)} objects",
+                delta="Cần rà soát" if mismatched_objects else "Khớp",
+                delta_color="inverse" if mismatched_objects else "normal",
+            )
             total_detected = len(selected_frame.objects) + len(missed_objects)
             cov = (len(selected_frame.objects) / total_detected * 100) if total_detected > 0 else 100
-            mcol3.metric("📊 Tỷ lệ bao phủ nhãn", f"{cov:.1f}%")
+            mcol4.metric("📊 Tỷ lệ bao phủ nhãn", f"{cov:.1f}%")
 
         # Tìm các lỗi ứng với frame này
         frame_errors: Dict[str, List[QCError]] = {}
         for err in report.errors:
             if err.frame_name == selected_frame_name:
-                # Có thể object_id có dạng 'obj_a & obj_b'
                 for oid in [x.strip() for x in err.object_id.split("&")]:
                     frame_errors.setdefault(oid, []).append(err)
 
@@ -895,7 +911,7 @@ with tab_visual:
             ax.set_xlim(0, canvas_w)
             ax.set_ylim(canvas_h, 0)
 
-        # Vẽ từng object
+        # Vẽ từng object người dùng gán
         for obj in selected_frame.objects:
             obj_errs = frame_errors.get(obj.id, [])
             has_error = any(e.is_error() for e in obj_errs)
@@ -917,7 +933,6 @@ with tab_visual:
             # Vẽ Box2D
             if obj.box2d:
                 bx = obj.box2d
-                # Clamping nhẹ để hiển thị nếu out-of-bounds
                 rect = patches.Rectangle(
                     (bx.x1, bx.y1),
                     bx.width,
@@ -963,17 +978,20 @@ with tab_visual:
                     bbox=dict(facecolor="#1e293b", edgecolor=edge_color, boxstyle="round,pad=0.2", alpha=0.85),
                 )
 
-        # Vẽ các vật thể AI phát hiện bị BỎ SÓT (Khung viền cam nét đứt)
+        # Vẽ các vật thể AI phát hiện bị BỎ SÓT (Khung viền cam/tím neon nét đứt từ Tri-Model Ensemble)
         for m_idx, m_obj in enumerate(missed_objects, start=1):
             mbx = m_obj["box2d"]
             m_cat = m_obj["category"]
             m_conf = m_obj["confidence"]
+            agreed_cnt = m_obj.get("agreement_count", 3)
+            box_color = "#a855f7" if agreed_cnt >= 3 else "#f97316"
+
             rect = patches.Rectangle(
                 (mbx.x1, mbx.y1),
                 mbx.width,
                 mbx.height,
-                linewidth=2.2,
-                edgecolor="#f97316",
+                linewidth=2.5,
+                edgecolor=box_color,
                 facecolor="none",
                 linestyle="--",
             )
@@ -981,14 +999,18 @@ with tab_visual:
             ax.text(
                 max(5, mbx.x1),
                 max(18, mbx.y1 - 5),
-                f"⚠️ [BỎ SÓT] {m_cat} ({m_conf:.0%})",
-                color="#ea580c",
+                f"🤖 [AI {agreed_cnt}/3] {m_cat} ({m_conf:.0%})",
+                color=box_color,
                 fontsize=8,
                 weight="bold",
-                bbox=dict(facecolor="#fff7ed", edgecolor="#ea580c", boxstyle="round,pad=0.2", alpha=0.9),
+                bbox=dict(facecolor="#18181b", edgecolor=box_color, boxstyle="round,pad=0.2", alpha=0.9),
             )
 
-        ax.set_title(f"Khung hình: {selected_frame_name} ({len(selected_frame.objects)} objects đã gán | {len(missed_objects)} AI phát hiện bỏ sót)", color="white", fontsize=11)
+        ax.set_title(
+            f"Khung hình: {selected_frame_name} ({len(selected_frame.objects)} objects đã gán | {len(missed_objects)} AI phát hiện bỏ sót | {len(mismatched_objects)} nghi vấn sai nhãn)",
+            color="white",
+            fontsize=11,
+        )
         ax.set_xticks(range(0, canvas_w + 1, 200))
         ax.set_yticks(range(0, canvas_h + 1, 100))
         ax.tick_params(colors="#94a3b8", labelsize=8)
@@ -998,11 +1020,69 @@ with tab_visual:
 
         st.pyplot(fig)
 
-        # Hiển thị cảnh báo nếu AI phát hiện bỏ sót vật thể
+        # Hiển thị cảnh báo và bảng tọa độ trung bình từ AI
         if missed_objects:
             st.warning(
-                f"🚨 **Phát hiện {len(missed_objects)} vật thể chưa được gán nhãn trong khung hình này!**  \n"
-                f"Các khung viền nét đứt **màu cam** ở trên là những vị trí AI phát hiện thấy `{', '.join(set(m['category'] for m in missed_objects))}` nhưng bạn chưa vẽ nhãn."
+                f"🚨 **Tri-Model AI phát hiện {len(missed_objects)} vật thể chưa được gán nhãn trong khung hình này!**  \n"
+                f"Tọa độ các khung viền nét đứt màu tím/cam là kết quả lấy **trung bình có trọng số (WBF)** từ bộ 3 mô hình."
+            )
+
+            # Bảng chi tiết tọa độ WBF và công cụ tự động tạo file sửa nhãn
+            with st.expander("📋 Xem bảng tọa độ WBF & Công cụ tự động sửa nhãn (1-Click Fix)", expanded=True):
+                table_rows = []
+                for idx, m in enumerate(missed_objects, 1):
+                    b = m["box2d"]
+                    table_rows.append({
+                        "STT": idx,
+                        "Đối tượng": m["category"],
+                        "Độ tin cậy": f"{m['confidence']:.1%}",
+                        "Đồng thuận": f"{m.get('agreement_count', 3)}/3 models",
+                        "Tọa độ [x1, y1, x2, y2]": f"[{b.x1:.1f}, {b.y1:.1f}, {b.x2:.1f}, {b.y2:.1f}]",
+                        "Kích thước (WxH)": f"{b.width:.1f} x {b.height:.1f} px",
+                    })
+                st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+                # Nút 1-Click: Tạo file nhãn YOLO txt đã bổ sung đầy đủ các box AI
+                img_w = loaded_img.width if loaded_img else selected_frame.width
+                img_h = loaded_img.height if loaded_img else selected_frame.height
+
+                yolo_lines = []
+                # Giữ nguyên nhãn cũ
+                for uobj in selected_frame.objects:
+                    if uobj.box2d:
+                        bx = uobj.box2d
+                        xc = ((bx.x1 + bx.x2) / 2.0) / img_w
+                        yc = ((bx.y1 + bx.y2) / 2.0) / img_h
+                        bw = bx.width / img_w
+                        bh = bx.height / img_h
+                        yolo_lines.append(f"0 {xc:.6f} {yc:.6f} {bw:.6f} {bh:.6f} # {uobj.category}")
+
+                # Bổ sung các box AI đồng thuận
+                for m in missed_objects:
+                    bx = m["box2d"]
+                    xc = ((bx.x1 + bx.x2) / 2.0) / img_w
+                    yc = ((bx.y1 + bx.y2) / 2.0) / img_h
+                    bw = bx.width / img_w
+                    bh = bx.height / img_h
+                    yolo_lines.append(f"0 {xc:.6f} {yc:.6f} {bw:.6f} {bh:.6f} # [AI_ADDED] {m['category']}")
+
+                fixed_txt_content = "\n".join(yolo_lines)
+                st.download_button(
+                    label=f"📥 Tải file nhãn `{Path(selected_frame_name).stem}_fixed.txt` (Đã tự động bù {len(missed_objects)} box)",
+                    data=fixed_txt_content,
+                    file_name=f"{Path(selected_frame_name).stem}_fixed.txt",
+                    mime="text/plain",
+                    help="Bấm để tải file nhãn đã gộp các box người gán + các box AI 3/3 đồng thuận, giảm hơn 70% thời gian annotator phải vẽ lại.",
+                )
+
+        if mismatched_objects:
+            st.info(
+                f"⚠️ **Có {len(mismatched_objects)} đối tượng nghi vấn sai class:**  \n" +
+                "  \n".join([
+                    f"- Đối tượng `{mm['user_obj_id']}`: Gán nhãn là `{mm['user_category']}` "
+                    f"nhưng AI đồng thuận xác định là `{mm['ai_category']}` (IoU: {mm['iou']:.0%})"
+                    for mm in mismatched_objects
+                ])
             )
 
         # Hiển thị các lỗi cụ thể của Frame này
