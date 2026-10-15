@@ -19,7 +19,7 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     # 1. Khối thương hiệu/logo đưa lên vị trí trên cùng của Sidebar
     st.sidebar.markdown("""
     <div class="sidebar-brand-card">
-        <div class="sidebar-brand-icon">🛡️</div>
+        <div class="sidebar-brand-icon" style="font-weight: 800; font-family: 'JetBrains Mono', monospace; color: #2563eb; font-size: 1.1rem; line-height: 1;">QC</div>
         <div>
             <h3 class="sidebar-brand-title">BDD-QC Suite</h3>
             <p class="sidebar-brand-sub">2D Annotation Quality Control</p>
@@ -28,20 +28,20 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     """, unsafe_allow_html=True)
 
     # 1. Nguồn Dữ Liệu
-    st.sidebar.subheader("📂 1. Nguồn Dữ Liệu")
+    st.sidebar.subheader("1. NGUỒN DỮ LIỆU")
     data_source = st.sidebar.radio(
         "Chọn phương thức nạp dữ liệu:",
         options=[
-            "⚡ Dùng dữ liệu mẫu (Sample)",
-            "📂 Upload nhiều file (JSON / TXT / XML)",
-            "🗂️ Quét cả thư mục cục bộ",
+            "Dùng dữ liệu mẫu (Sample)",
+            "Upload nhiều file (JSON / TXT / XML)",
+            "Quét cả thư mục cục bộ",
         ],
         index=0,
     )
 
     # 2. Canvas & Ảnh Gốc
     st.sidebar.markdown("---")
-    st.sidebar.subheader("📐 2. Canvas & Ảnh Gốc")
+    st.sidebar.subheader("2. CANVAS & ẢNH GỐC")
 
     canvas_res = st.sidebar.selectbox(
         "Độ phân giải khung hình (YOLO):",
@@ -63,18 +63,18 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
         for _img_f in uploaded_images_raw:
             uploaded_image_map[_img_f.name] = _img_f
             uploaded_image_map[Path(_img_f.name).stem] = _img_f
-        st.sidebar.success(f"✅ Đã nạp **{len(uploaded_images_raw)} ảnh** minh họa")
+        st.sidebar.success(f"Đã nạp {len(uploaded_images_raw)} ảnh minh họa")
 
     all_sources: List[Tuple[str, List[FrameData]]] = []
     file_display_name = "batch"
 
     # Xử lý theo từng Data Source
-    if data_source == "⚡ Dùng dữ liệu mẫu (Sample)":
+    if data_source == "Dùng dữ liệu mẫu (Sample)":
         sample_choice = st.sidebar.selectbox(
             "Chọn tệp dữ liệu mẫu:",
             options=[
-                "🔴 sample_with_errors.json (7 vi phạm kỹ thuật)",
-                "🟢 sample_valid.json (Bộ nhãn 100% chuẩn quy cách)",
+                "sample_with_errors.json (7 vi phạm kỹ thuật)",
+                "sample_valid.json (Bộ nhãn 100% chuẩn quy cách)",
             ],
             index=0,
         )
@@ -87,13 +87,13 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
                 frames_sample = load_bdd100k(sample_file_path)
                 all_sources.append((sel_file, frames_sample))
                 file_display_name = sample_file_path.stem
-                st.sidebar.success(f"✅ Đã nạp `{sel_file}` ({len(frames_sample)} frames)")
+                st.sidebar.success(f"Đã nạp {sel_file} ({len(frames_sample)} frames)")
             except Exception as ex:
                 st.sidebar.error(f"Lỗi đọc file mẫu: {ex}")
         else:
             st.sidebar.error(f"Không tìm thấy file mẫu: {sel_file}")
 
-    elif data_source == "📂 Upload nhiều file (JSON / TXT / XML)":
+    elif data_source == "Upload nhiều file (JSON / TXT / XML)":
         st.sidebar.caption("Hỗ trợ chọn nhiều file cùng lúc: `.json`, `.txt` (BDD100K hoặc YOLO), `.xml`")
         uploaded_files = st.sidebar.file_uploader(
             "Chọn file nhãn:",
@@ -208,7 +208,7 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     ai_conf = 0.35
     if ai_model is not None:
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🤖 4. Trợ Lý AI Soi Bỏ Sót")
+        st.sidebar.subheader("4. TRỢ LÝ AI SOI BỎ SÓT")
         enable_ai_check = st.sidebar.checkbox(
             "Bật AI soi xe/người BỎ SÓT",
             value=True,
@@ -219,17 +219,17 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
 
     # 5. Điều Khiển QC
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🚀 5. Điều Khiển QC")
+    st.sidebar.subheader("5. ĐIỀU KHIỂN QC")
     btn_col1, btn_col2 = st.sidebar.columns([3, 2])
     run_btn = btn_col1.button(
-        "🚀 Bắt đầu",
+        "Bắt đầu kiểm tra",
         use_container_width=True,
         type="primary",
         disabled=not all_sources,
         help="Bắt đầu chạy kiểm tra QC trên các file đã nạp",
     )
     reset_btn = btn_col2.button(
-        "🔄 Làm mới",
+        "Làm mới dữ liệu",
         use_container_width=True,
         help="Tải lại / Xóa cache kết quả kiểm tra",
     )
@@ -237,7 +237,7 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     # Team Card
     st.sidebar.markdown("""
     <div class="team-card">
-        <div style="font-size: 0.76rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">👥 Đội Ngũ Thực Hiện (N2-04A)</div>
+        <div style="font-size: 0.76rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">ĐỘI NGŨ THỰC HIỆN (N2-04A)</div>
         <div class="team-member-row"><span class="team-member-name">Đào Ngọc Hiếu</span><span class="team-member-role">Leader</span></div>
         <div class="team-member-row"><span class="team-member-name">Đoàn Văn Thắng</span><span class="team-member-role">Data Eng</span></div>
         <div class="team-member-row"><span class="team-member-name">Nguyễn Thanh Đức</span><span class="team-member-role">BBox QC</span></div>
@@ -250,12 +250,12 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     st.sidebar.markdown("---")
     theme_choice = st.sidebar.radio(
         "Chế độ hiển thị (Theme):",
-        options=["🌙 Tối", "☀️ Sáng"],
+        options=["Scale Dark (Tối)", "Studio Light (Sáng)"],
         index=0,
         horizontal=True,
         help="Chuyển đổi giao diện Sáng / Tối theo nhu cầu làm việc"
     )
-    is_dark = ("Tối" in theme_choice or "Dark" in theme_choice)
+    is_dark = ("Scale Dark" in theme_choice or "Tối" in theme_choice)
 
     return {
         "is_dark": is_dark,

@@ -136,7 +136,7 @@ def main():
         st.session_state["qc_sources"] = all_sources
         st.session_state["qc_rules_snapshot"] = active_rules
         st.session_state["qc_display_name"] = file_display_name
-        st.toast(f"✅ Hoàn thành quét QC trong {_elapsed:.2f}s — phát hiện {len(_report.errors)} vấn đề", icon="🛡️")
+        st.toast(f"Hoàn thành quét QC trong {_elapsed:.2f}s — phát hiện {len(_report.errors)} vấn đề")
 
     if run_btn:
         _execute_qc()
@@ -163,15 +163,15 @@ def main():
 
     # 8. Dashboard Kết quả: Thống kê KPI & Quyết Định Nghiệm Thu
     pass_rate = render_kpi_dashboard(report=report, all_sources=all_sources)
-    render_verdict_card(report=report, pass_rate=pass_rate)
+    render_verdict_card(report=report, pass_rate=pass_rate, is_dark=is_dark)
 
-    # 9. Tabs hiển thị chi tiết kết quả
+    # 9. Tabs hiển thị chi tiết kết quả (Enterprise de-emojified styling)
     total_issues = len(report.errors)
     tab_list, tab_visual, tab_charts, tab_docs = st.tabs([
-        f"📋 Defect Catalog ({total_issues})",
-        "🖼️ Nucleus Split-Workspace",
-        "📊 Quality Telemetry & KPI",
-        "📖 Rule Specification",
+        f"Defect Catalog ({total_issues})",
+        "Nucleus Split-Workspace",
+        "Quality Telemetry & KPI",
+        "Rule Specification",
     ])
 
     with tab_list:

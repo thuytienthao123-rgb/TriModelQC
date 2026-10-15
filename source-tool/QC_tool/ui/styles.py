@@ -62,13 +62,15 @@ def apply_custom_css(is_dark: bool):
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
     /* 6. Clean Streamlit Default Chrome */
+    header [data-testid="stToolbar"] {{
+        display: none !important;
+    }}
     #MainMenu, footer {{
         visibility: hidden !important;
         height: 0 !important;
     }}
     header {{
-        visibility: hidden !important;
-        height: 0 !important;
+        background: transparent !important;
     }}
     header button[data-testid="stSidebarCollapseButton"],
     [data-testid="stSidebarCollapseButton"],
@@ -82,6 +84,23 @@ def apply_custom_css(is_dark: bool):
         padding-bottom: 2rem !important;
         max-width: 100% !important;
     }}
+
+    /* Status Dots (Enterprise SaaS visual indicator) */
+    .status-dot {{
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+        flex-shrink: 0;
+        vertical-align: middle;
+    }}
+    .status-dot-green {{ background-color: #10B981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }}
+    .status-dot-orange {{ background-color: #F59E0B; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }}
+    .status-dot-red {{ background-color: #EF4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }}
+    .status-dot-cyan {{ background-color: #06B6D4; box-shadow: 0 0 6px rgba(6, 182, 212, 0.4); }}
+    .status-dot-indigo {{ background-color: #6366F1; box-shadow: 0 0 6px rgba(99, 102, 241, 0.4); }}
+    .status-dot-gray {{ background-color: #94A3B8; }}
 
     .stApp {{
         background-color: {bg_main} !important;
@@ -324,11 +343,33 @@ def apply_custom_css(is_dark: bool):
         box-shadow: {box_shadow};
     }}
 
-    .qc-kpi-cyan {{ border-left: 3.5px solid {val_cyan}; }}
-    .qc-kpi-indigo {{ border-left: 3.5px solid {val_indigo}; }}
-    .qc-kpi-rose {{ border-left: 3.5px solid {val_rose}; }}
-    .qc-kpi-amber {{ border-left: 3.5px solid {val_amber}; }}
-    .qc-kpi-emerald {{ border-left: 3.5px solid {val_emerald}; }}
+    .qc-kpi-card {{
+        background: {bg_card};
+        border: 1px solid {border_c};
+        border-radius: 10px;
+        padding: 16px 18px;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        min-height: 135px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }}
+
+    .qc-kpi-card:hover {{
+        border-color: {val_cyan};
+        transform: translateY(-2.5px);
+        box-shadow: {box_shadow};
+    }}
+
+    .qc-kpi-cyan {{ border-left: 4px solid {val_cyan}; }}
+    .qc-kpi-indigo {{ border-left: 4px solid {val_indigo}; }}
+    .qc-kpi-rose {{ border-left: 4px solid #ef4444; }}
+    .qc-kpi-amber {{ border-left: 4px solid #f59e0b; }}
+    .qc-kpi-emerald {{ border-left: 4px solid #10b981; }}
 
     .qc-kpi-label {{
         font-size: 0.72rem;
@@ -338,6 +379,11 @@ def apply_custom_css(is_dark: bool):
         color: {text_sub} !important;
         margin-bottom: 4px;
         font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
     }}
 
     .qc-kpi-val {{
@@ -350,9 +396,9 @@ def apply_custom_css(is_dark: bool):
 
     .val-cyan {{ color: {val_cyan} !important; }}
     .val-indigo {{ color: {val_indigo} !important; }}
-    .val-rose {{ color: {val_rose} !important; }}
-    .val-amber {{ color: {val_amber} !important; }}
-    .val-emerald {{ color: {val_emerald} !important; }}
+    .val-rose {{ color: #ef4444 !important; }}
+    .val-amber {{ color: #f59e0b !important; }}
+    .val-emerald {{ color: #10b981 !important; }}
 
     .qc-kpi-sub {{
         font-size: 0.74rem;
