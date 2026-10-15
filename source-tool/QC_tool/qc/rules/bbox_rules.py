@@ -136,10 +136,44 @@ class RuleB04AbnormalRatio(BaseRule):
         return errors
 
 
+class RuleB05ExtremeScale(BaseRule):
+    rule_id = "RULE_B05"
+    description = "Box chiếm gần trọn khung hình (> 96% diện tích) nghi ngờ kéo nhầm"
+
+    def check(self, frame: FrameData) -> List[QCError]:
+        errors: List[QCError] = []
+        frame_area = float(frame.width * frame.height)
+        if frame_area <= 0:
+            return errors
+
+        for obj in frame.objects:
+            if obj.category.lower() in _THIN_CLASSES or obj.category.lower() in {"background", "scene"}:
+                continue
+            b = obj.box2d
+            if b is None or b.width <= 0 or b.height <= 0:
+                continue
+
+            area_pct = b.area / frame_area
+            if area_pct > 0.96:
+                errors.append(QCError(
+                    frame_name=frame.name,
+                    object_id=obj.id,
+                    category=obj.category,
+                    rule_id=self.rule_id,
+                    severity=WARNING,
+                    message=(
+                        f"Box chiếm {area_pct:.1%} diện tích khung hình ({b.width:.0f}×{b.height:.0f}px). "
+                        f"Nghi ngờ annotator lỡ tay kéo toàn cảnh thay vì bao vật thể thật."
+                    ),
+                ))
+        return errors
+
+
 # Danh sách tất cả bbox rules, dùng trong engine
 ALL_BBOX_RULES: List[BaseRule] = [
     RuleB01OutOfBounds(),
     RuleB02InvertedOrZero(),
     RuleB03TooSmall(),
     RuleB04AbnormalRatio(),
+    RuleB05ExtremeScale(),
 ]

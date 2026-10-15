@@ -136,8 +136,78 @@ class RuleA03TrafficLightColor(BaseRule):
         return errors
 
 
+# Danh mục nhãn BDD100K và YOLO thông dụng
+STANDARD_BDD_CATEGORIES: Set[str] = {
+    "pedestrian", "rider", "car", "truck", "bus", "train",
+    "motorcycle", "bicycle", "traffic light", "traffic sign",
+    "lane", "drivable area", "person", "vehicle"
+}
+
+CATEGORY_TYPO_MAPPING: dict = {
+    "cars": "car",
+    "pedestrians": "pedestrian",
+    "persons": "pedestrian",
+    "trucks": "truck",
+    "tuck": "truck",
+    "buses": "bus",
+    "traffic_light": "traffic light",
+    "trafficlight": "traffic light",
+    "traffic_sign": "traffic sign",
+    "trafficsign": "traffic sign",
+    "motorcycles": "motorcycle",
+    "motorbike": "motorcycle",
+    "bicycles": "bicycle",
+    "bike": "bicycle",
+}
+
+
+class RuleC01CategoryOntology(BaseRule):
+    rule_id = "RULE_C01"
+    description = "Kiểm tra tính hợp lệ của tên nhãn phân loại (Category Ontology)"
+
+    def check(self, frame: FrameData) -> List[QCError]:
+        errors: List[QCError] = []
+        for obj in frame.objects:
+            cat_raw = (obj.category or "").strip()
+            cat_norm = cat_raw.lower()
+
+            if not cat_norm:
+                errors.append(QCError(
+                    frame_name=frame.name,
+                    object_id=obj.id,
+                    category=cat_raw,
+                    rule_id=self.rule_id,
+                    severity=ERROR,
+                    message="Tên phân loại (Category) bị để trống.",
+                ))
+                continue
+
+            if cat_norm in CATEGORY_TYPO_MAPPING:
+                suggested = CATEGORY_TYPO_MAPPING[cat_norm]
+                errors.append(QCError(
+                    frame_name=frame.name,
+                    object_id=obj.id,
+                    category=cat_raw,
+                    rule_id=self.rule_id,
+                    severity=WARNING,
+                    message=f"Tên nhãn '{cat_raw}' nghi ngờ gõ sai chính tả. Đề xuất đổi thành '{suggested}'.",
+                ))
+            elif cat_norm not in STANDARD_BDD_CATEGORIES:
+                # Nếu là class tùy chỉnh không thuộc BDD100K
+                errors.append(QCError(
+                    frame_name=frame.name,
+                    object_id=obj.id,
+                    category=cat_raw,
+                    rule_id=self.rule_id,
+                    severity=WARNING,
+                    message=f"Nhãn '{cat_raw}' nằm ngoài bộ 10 phân lớp tiêu chuẩn của BDD100K.",
+                ))
+        return errors
+
+
 ALL_ATTRIBUTE_RULES: List[BaseRule] = [
     RuleA01DuplicateObject(),
     RuleA02MissingAttributes(),
     RuleA03TrafficLightColor(),
+    RuleC01CategoryOntology(),
 ]
