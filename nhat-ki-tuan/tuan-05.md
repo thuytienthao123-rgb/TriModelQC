@@ -1,15 +1,20 @@
-# Nhật ký tuần 05 · 12/10 – 18/10/2026
+# BÁO CÁO TIẾN ĐỘ DỰ ÁN — TUẦN 05 (12/10 – 18/10/2026)
 
-**Lead tuần này:** Trần Thị Thủy Tiên (`2A202602171`)  
-**Nhiệm vụ trọng tâm:** Phát triển và đưa vào **thử nghiệm nội bộ** Bộ ba mô hình (Tri-Model Consensus Ensemble) & Thuật toán Weighted Boxes Fusion (WBF), tự động phát hiện vật thể bỏ sót và sai nhãn; hướng tới mục tiêu hỗ trợ cắt giảm tối thiểu 70% thời gian rà soát thủ công của Reviewer khi hoàn thiện.  
-**Mã kho lưu trữ:** [P-037](https://github.com/AI20K-Build-Phase-Cohort-4A/P-037) · **Nhóm:** `t-037`
+**Mã kho lưu trữ:** [P-037](https://github.com/AI20K-Build-Phase-Cohort-4A/P-037) · **Nhóm:** `t-037`  
+**Dự án:** Hệ thống hỗ trợ kiểm soát và đánh giá chất lượng dữ liệu hình ảnh (AI-Assisted Quality Control Tool)  
+**Lead tuần 05:** Trần Thị Thủy Tiên (`2A202602171`)
 
-> **Ghi chú phân tách nhân sự Tuần 05:**  
-> Thành viên Đoàn Văn Thắng và Nguyễn Thanh Đức quyết định xây dựng một hướng công cụ QC song song để thử nghiệm độc lập. Phần báo cáo chi tiết của hai thành viên này sẽ được cập nhật riêng sau. Báo cáo tuần 05 này tập trung vào các nội dung phát triển, nâng cấp so với Tuần 04 do nhánh chính thực hiện, gồm **Trần Thị Thủy Tiên (Lead)**, **Đào Ngọc Hiếu** và **Hoàng Công Chứ**.
+> **Ghi chú về phân tách hai hướng phát triển trong Tuần 05:**  
+> Trong tuần 05, nhóm thống nhất triển khai 2 hướng công cụ song song để thử nghiệm và so sánh đối chứng:
+> - **Phần A (Nhánh chính):** Nghiên cứu, phát triển và đưa vào **thử nghiệm nội bộ** module Bộ ba mô hình AI Đồng thuận (Tri-Model Consensus Ensemble) & Thuật toán Weighted Boxes Fusion (WBF), tự động phát hiện vật thể bỏ sót và sai nhãn; hướng tới mục tiêu hỗ trợ cắt giảm tối thiểu 70% thời gian rà soát thủ công của Reviewer khi hoàn thiện. Phụ trách: **Trần Thị Thủy Tiên (Lead)**, **Hoàng Công Chứ**, **Đào Ngọc Hiếu**.
+> - **Phần B (Nhánh song song):** Hoàn thiện khung luồng quy trình vận hành, chuẩn hóa bộ quy tắc nghiệp vụ, xây dựng giao diện hàng đợi kiểm duyệt (Reviewer Disposition Hub) và tích hợp SAM2. Phụ trách: **Đoàn Văn Thắng**, **Nguyễn Thanh Đức**.
 
 ---
 
-## 1. Thành viên và phân công nhiệm vụ
+# PHẦN A: BÁO CÁO NHÁNH TRI-MODEL AI CONSENSUS & WBF ENSEMBLE
+*(Phụ trách: Trần Thị Thủy Tiên, Hoàng Công Chứ, Đào Ngọc Hiếu)*
+
+## 1. Phân công nhiệm vụ cụ thể
 
 | Thành viên | MSSV | Vai trò chính | Phân công cụ thể trong tuần 05 |
 |---|---|---|---|
@@ -36,7 +41,7 @@ So với Tuần 04 (mới chỉ dừng lại ở 10 rules hình học và thuộ
 
 ---
 
-## 3. Tiến độ công việc chi tiết trong tuần 05
+## 3. Tiến độ công việc chi tiết trong tuần 05 (Nhánh chính)
 
 > *Lưu ý: Các hạng mục mã nguồn và giao diện đã được triển khai nhưng **chưa thể khẳng định là đã hoàn thành 100% hay chạy trơn tru tuyệt đối**, hiện toàn bộ hệ thống đang trong giai đoạn kiểm thử nội bộ và tiếp tục được các thành viên trong nhóm trải nghiệm thực tế.*
 
@@ -71,14 +76,66 @@ So với Tuần 04 (mới chỉ dừng lại ở 10 rules hình học và thuộ
 
 ---
 
-## 5. Kế hoạch tuần kế tiếp (Tuần 06)
+# PHẦN B: BÁO CÁO NHÁNH QUY TRÌNH HỆ THỐNG & GIAO DIỆN HÀNG ĐỢI KIỂM DUYỆT
+*(Phụ trách: Đoàn Văn Thắng, Nguyễn Thanh Đức)*
+
+## 1. Tổng quan mục tiêu
+- Hoàn thiện kế hoạch chi tiết và tài liệu hóa toàn bộ luồng quy trình vận hành của hệ thống.
+- Xây dựng hoàn chỉnh khung giao diện người dùng và các phân khu chức năng phục vụ thao tác kiểm tra dữ liệu.
+- Thiết lập hệ thống quy tắc nghiệp vụ và cơ chế rà soát tự động ban đầu.
+- Tiến hành chạy thử nghiệm liên thông từ đầu vào đến đầu ra trên các tập dữ liệu mẫu để đánh giá tính khả thi và độ ổn định của hệ thống.
+
+---
+
+## 2. Phân công và kết quả công việc chi tiết
+
+### 👤 Đoàn Văn Thắng
+* **Xây dựng quy hoạch hệ thống và tài liệu luồng quy trình:**
+  - Hoàn thành tài liệu phân tích luồng làm việc tổng thể từ khâu tiếp nhận dữ liệu đầu vào, xử lý tự động, kiểm duyệt thủ công đến khâu kết xuất báo cáo nghiệm thu.
+  - Xây dựng kế hoạch triển khai từng giai đoạn và xác định các tiêu chí nghiệm thu cho từng phân hệ.
+* **Hoàn thiện thiết kế và xây dựng giao diện người dùng:**
+  - Triển khai xong toàn bộ giao diện làm việc trực quan cho người kiểm duyệt, bao gồm khu vực tải lên dữ liệu, màn hình trực quan hóa hình ảnh kèm thông tin đối soát, và bảng điều khiển trung tâm.
+  - Thiết kế bảng hàng đợi thông minh giúp phân loại và sắp xếp thứ tự ưu tiên các trường hợp cần rà soát dựa trên mức độ cảnh báo.
+  - Xây dựng khu vực xem xét chi tiết cho phép người dùng xác nhận, bác bỏ hoặc để lại ghi chú đối với từng cảnh báo nghi vấn.
+  - Tích hợp màn hình quản lý, xem trước và chỉnh sửa bộ tiêu chuẩn/hướng dẫn kiểm tra chất lượng.
+* **Phối hợp thử nghiệm và kiểm thử tích hợp:**
+  - Thực hiện kiểm tra tính liên kết và độ phản hồi giữa các màn hình chức năng.
+  - Thử nghiệm chức năng xuất báo cáo tổng hợp sau kiểm tra dưới nhiều định dạng khác nhau.
+
+---
+
+### 👤 Nguyễn Thanh Đức
+* **Thiết lập bộ tiêu chuẩn và quy tắc kiểm tra dữ liệu:**
+  - Xây dựng và hoàn thiện bộ tiêu chí đánh giá tự động đối với dữ liệu hình ảnh (kiểm tra tính hợp lệ về hình học, cấu trúc đối tượng, các lỗi trùng lặp và phân loại sai danh mục).
+  - Chuẩn hóa các kịch bản kiểm tra đối với các định dạng dữ liệu khác nhau để đảm bảo tính tương thích khi nạp vào hệ thống.
+* **Phát triển lõi xử lý và cơ chế đánh giá tự động:**
+  - Xây dựng logic phân tích dữ liệu tự động, đối chiếu giữa dữ liệu thực tế và bộ quy tắc đã ban hành để tự động phát hiện các điểm bất thường.
+  - Thiết lập cơ chế tích hợp với module hỗ trợ rà soát nâng cao nhằm tạo ra các đề xuất khách quan hỗ trợ người kiểm duyệt.
+  - Xây dựng cơ chế trích xuất vị trí nghi ngờ lỗi và tính toán các chỉ số tương đồng giúp khoanh vùng vấn đề nhanh chóng.
+* **Thử nghiệm trên dữ liệu mẫu và chuẩn bị môi trường chạy:**
+  - Chuẩn bị các gói dữ liệu mẫu chuẩn (bao gồm nhiều tình huống dữ liệu từ đơn giản đến phức tạp) để đưa vào kiểm tra thực tế.
+  - Thực hiện các đợt chạy thử nghiệm đo lường hiệu năng và độ ổn định của bộ kiểm tra tự động trên các tập dữ liệu mẫu.
+
+---
+
+## 3. Tóm tắt những gì đã đạt được (Tổng kết hiện trạng nhánh song song)
+
+1. **Về mặt quy trình & Kế hoạch (Planning):** Đã thống nhất và hoàn tất toàn bộ tài liệu đặc tả luồng xử lý của hệ thống; xác định rõ vai trò của việc kiểm tra tự động là đưa ra cảnh báo và đề xuất hỗ trợ, quyền quyết định nghiệm thu cuối cùng thuộc về người kiểm duyệt.
+2. **Về mặt giao diện người dùng (UI/UX):** Đã hoàn thành các phân hệ giao diện (tiếp nhận nạp dữ liệu, hiển thị hình ảnh đối sánh trực quan, danh sách hàng đợi phân cấp ưu tiên, bảng phê duyệt/từ chối của reviewer, màn hình quản lý tiêu chuẩn và xuất báo cáo).
+3. **Về mặt xử lý nghiệp vụ (Core Logic):** Bộ quy tắc kiểm tra cấu trúc dữ liệu đã hoạt động ổn định và lọc được các lỗi sai cơ bản; module đánh giá tự động bước đầu tạo ra các gợi ý và chỉ số so sánh.
+4. **Về mặt thử nghiệm thực tế (Testing & Experimentation):** Đã chạy kiểm thử thành công toàn bộ luồng quy trình trên tập dữ liệu mẫu; các gói dữ liệu mẫu bước đầu cho kết quả khả quan.
+
+---
+
+# PHẦN C: KẾ HOẠCH PHỐI HỢP & NHIỆM VỤ TUẦN 06
 
 1. **Trực tiếp kiểm thử toàn diện giao diện Web & Quy trình QC:**
    - Các thành viên (Tiên, Chứ, Hiếu) trực tiếp dùng thử giao diện web Streamlit, kiểm tra độ mượt mà, tính tiện dụng của các nút bấm và tính đúng đắn của file nhãn bù tự động (Auto-Fix).
    - Rà soát các trường hợp lỗi giao diện, tối ưu hóa trải nghiệm người dùng (UX) và khắc phục các vấn đề phát sinh trong quá trình thử nghiệm.
-2. **Họp đối chứng và so sánh với nhánh công cụ song song của Thắng & Đức:**
-   - Tổ chức buổi demo nội bộ đánh giá ưu/nhược điểm giữa nhánh Tri-Model AI WBF và nhánh công cụ của Thắng - Đức.
-   - Thống nhất giải pháp tối ưu để hoàn thiện phiên bản công cụ chung của nhóm.
+2. **Họp đối chứng và hợp nhất hai nhánh công cụ:**
+   - Tổ chức buổi demo nội bộ đánh giá ưu/nhược điểm giữa nhánh Tri-Model AI WBF của Tiên - Chứ - Hiếu và nhánh công cụ của Thắng - Đức.
+   - Thống nhất giải pháp tối ưu để tích hợp trọn vẹn thành một sản phẩm QC Tool hoàn chỉnh của cả nhóm.
 3. **Thử nghiệm trên tập dữ liệu gán nhãn thực tế quy mô lớn hơn:**
    - Chạy thử nghiệm trên nhiều khung hình và video giao thông khác nhau để đánh giá chính xác độ tin cậy và tỷ lệ cắt giảm thời gian thực tế của Reviewer.
-
+4. **Chuẩn bị tài liệu nghiệm thu đề tài N2-04A:**
+   - Tổng hợp các kết quả thực nghiệm, hoàn thiện slide báo cáo và video demo.

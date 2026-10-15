@@ -336,6 +336,106 @@ class TestSequenceRules:
         assert errs[0].rule_id == "RULE_T02"
 
 
+# ===========================================================================
+# NEW ADVANCED RULES: B05, P04, C01 & Comprehensive Auto-Fix
+# ===========================================================================
+
+class TestAdvancedRules:
+    def test_b05_extreme_scale(self):
+        from qc.rules.bbox_rules import RuleB05ExtremeScale
+        rule = RuleB05ExtremeScale()
+        # Box covering 98% of 1000x1000 frame
+        f = FrameData(name="f1.jpg", width=1000, height=1000, objects=[
+            make_obj("huge", "car", x1=5, y1=5, x2=995, y2=995)
+        ])
+        errs = rule.check(f)
+        assert len(errs) == 1
+        assert errs[0].rule_id == "RULE_B05"
+
+    def test_p04_duplicate_vertices(self):
+        from qc.rules.polygon_rules import RuleP04SpikeOrDuplicateVertices
+        rule = RuleP04SpikeOrDuplicateVertices()
+        poly = Polygon2D(vertices=[(10, 10), (10.2, 10.1), (50, 10), (50, 50)])
+        f = FrameData(name="f1.jpg", width=1000, height=1000, objects=[
+            make_obj("dup", "car", poly=poly)
+        ])
+        errs = rule.check(f)
+        assert len(errs) == 1
+        assert errs[0].rule_id == "RULE_P04"
+
+    def test_c01_category_typo(self):
+        from qc.rules.attribute_rules import RuleC01CategoryOntology
+        rule = RuleC01CategoryOntology()
+        f = FrameData(name="f1.jpg", width=1000, height=1000, objects=[
+            make_obj("o1", "cars"),  # typo for car
+            make_obj("o2", "traffic_light"),  # typo for traffic light
+        ])
+        errs = rule.check(f)
+        assert len(errs) == 2
+        assert all(e.rule_id == "RULE_C01" for e in errs)
+        assert "car" in errs[0].message
+        assert "traffic light" in errs[1].message
+
+    def test_auto_correct_frames_full_healing(self):
+        from ui.auto_fix import auto_correct_frames
+        # Create an object with inverted box, missing attributes, invalid traffic light color, and bowtie polygon
+        obj = LabeledObject(
+            id="bad_obj",
+            category="traffic_light",
+            box2d=BBox2D(x1=300, y1=200, x2=100, y2=50),  # inverted x & y
+            poly2d=Polygon2D(vertices=[(0, 0), (50, 50), (50, 0), (0, 50)]),  # self-intersecting bowtie
+            attributes={"trafficLightColor": "purple"},  # missing occluded, truncated, invalid color
+        )
+        f = FrameData(name="test_heal.jpg", width=1920, height=1080, objects=[obj])
+        fixed_dataset, changelog, stats = auto_correct_frames([f])
+
+        assert len(fixed_dataset) == 1
+        fixed_lbl = fixed_dataset[0]["labels"][0]
+        # Inverted box fixed
+        assert fixed_lbl["box2d"]["x1"] < fixed_lbl["box2d"]["x2"]
+        assert fixed_lbl["box2d"]["y1"] < fixed_lbl["box2d"]["y2"]
+        # Attributes fixed
+        assert fixed_lbl["attributes"]["occluded"] is False
+        assert fixed_lbl["attributes"]["truncated"] is False
+        assert fixed_lbl["attributes"]["trafficLightColor"] == "none"
+        # Class normalized
+        assert fixed_lbl["category"] == "traffic light"
+        # Stats recorded
+        assert stats["B02_inverted"] > 0
+        assert stats["A02_attrs_filled"] > 0
+        assert stats["A03_tl_normalized"] > 0
+        assert stats["C01_typo_fixed"] > 0
+
+    def test_export_coco_and_yolo(self):
+        import json, zipfile, io
+        from qc.reporter import export_coco_json, export_yolo_zip_bytes, generate_csv_str
+
+        obj = make_obj("o1", "car", x1=10, y1=20, x2=110, y2=120)
+        f = make_frame(obj, name="sample.jpg", w=1920, h=1080)
+
+        # 1. Test COCO JSON
+        coco_str = export_coco_json([f])
+        coco_dict = json.loads(coco_str)
+        assert len(coco_dict["images"]) == 1
+        assert len(coco_dict["annotations"]) == 1
+        assert coco_dict["annotations"][0]["bbox"] == [10.0, 20.0, 100.0, 100.0]
+
+        # 2. Test YOLO ZIP
+        yolo_bytes = export_yolo_zip_bytes([f])
+        with zipfile.ZipFile(io.BytesIO(yolo_bytes), "r") as zf:
+            namelist = zf.namelist()
+            assert "classes.txt" in namelist
+            assert "sample.txt" in namelist
+            content = zf.read("sample.txt").decode("utf-8")
+            assert len(content.strip().split()) == 5
+
+        # 3. Test CSV with Reviewer Notes
+        report = run_qc([f])
+        notes = {"o1": {"status": "Verified", "comment": "Good box"}}
+        csv_text = generate_csv_str(report, reviewer_notes=notes)
+        assert "frame_name,object_id,category" in csv_text
+
+
 if __name__ == "__main__":
     import pytest as pt
     pt.main([__file__, "-v", "--tb=short"])
