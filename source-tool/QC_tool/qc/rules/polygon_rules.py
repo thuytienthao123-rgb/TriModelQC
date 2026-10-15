@@ -165,8 +165,68 @@ class RuleP03MaskBoxMismatch(BaseRule):
         return errors
 
 
+class RuleP04SpikeOrDuplicateVertices(BaseRule):
+    rule_id = "RULE_P04"
+    description = "Polygon có đỉnh trùng lặp liên tiếp hoặc góc gai dị thường (< 3.5°)"
+
+    def check(self, frame: FrameData) -> List[QCError]:
+        import math
+        errors: List[QCError] = []
+        for obj in frame.objects:
+            if obj.poly2d is None or len(obj.poly2d.vertices) < 3:
+                continue
+            verts = obj.poly2d.vertices
+            n = len(verts)
+
+            has_dup = False
+            for i in range(n):
+                p1 = verts[i]
+                p2 = verts[(i + 1) % n]
+                if math.hypot(p1[0] - p2[0], p1[1] - p2[1]) < 0.8:
+                    has_dup = True
+                    break
+
+            has_spike = False
+            spike_angle_deg = 180.0
+            for i in range(n):
+                p_prev = verts[(i - 1) % n]
+                p_curr = verts[i]
+                p_next = verts[(i + 1) % n]
+
+                v1 = (p_prev[0] - p_curr[0], p_prev[1] - p_curr[1])
+                v2 = (p_next[0] - p_curr[0], p_next[1] - p_curr[1])
+                len1 = math.hypot(v1[0], v1[1])
+                len2 = math.hypot(v2[0], v2[1])
+
+                if len1 > 15.0 and len2 > 15.0:
+                    dot = v1[0] * v2[0] + v1[1] * v2[1]
+                    cos_ang = max(-1.0, min(1.0, dot / (len1 * len2)))
+                    ang = math.degrees(math.acos(cos_ang))
+                    if ang < 3.5:
+                        has_spike = True
+                        spike_angle_deg = ang
+                        break
+
+            if has_dup or has_spike:
+                reasons = []
+                if has_dup:
+                    reasons.append("đỉnh trùng lặp liên tiếp (khoảng cách < 0.8px)")
+                if has_spike:
+                    reasons.append(f"gai nhọn dị thường ({spike_angle_deg:.1f}° < 3.5°)")
+                errors.append(QCError(
+                    frame_name=frame.name,
+                    object_id=obj.id,
+                    category=obj.category,
+                    rule_id=self.rule_id,
+                    severity=WARNING,
+                    message=f"Đa giác lỗi hình học: {', '.join(reasons)}. Cần làm mượt hoặc xóa đỉnh thừa.",
+                ))
+        return errors
+
+
 ALL_POLYGON_RULES: List[BaseRule] = [
     RuleP01InsufficientVertices(),
     RuleP02SelfIntersection(),
     RuleP03MaskBoxMismatch(),
+    RuleP04SpikeOrDuplicateVertices(),
 ]

@@ -125,16 +125,27 @@ def _print_ansi(report: QCReport, show_warnings: bool) -> None:
 # CSV Reporter
 # ---------------------------------------------------------------------------
 
-def generate_csv_str(report: QCReport) -> str:
-    """Xuat noi dung bao cao dang CSV string."""
+def generate_csv_str(
+    report: QCReport,
+    reviewer_notes: Optional[dict] = None,
+    rule_suggestions: Optional[dict] = None,
+) -> str:
+    """Xuat noi dung bao cao dang CSV string (Ho tro them ghi chu cua Reviewer & huong dan sua)."""
     import io
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=[
         "frame_name", "object_id", "category",
         "rule_id", "severity", "message",
+        "suggested_fix", "reviewer_status", "reviewer_comment",
     ])
     writer.writeheader()
+    notes = reviewer_notes or {}
+    suggs = rule_suggestions or {}
+
     for err in report.errors:
+        key = f"{err.frame_name}_{err.object_id}_{err.rule_id}"
+        note_entry = notes.get(key) or notes.get(err.object_id) or {}
+
         writer.writerow({
             "frame_name": err.frame_name,
             "object_id":  err.object_id,
@@ -142,16 +153,133 @@ def generate_csv_str(report: QCReport) -> str:
             "rule_id":    err.rule_id,
             "severity":   err.severity,
             "message":    err.message,
+            "suggested_fix": suggs.get(err.rule_id, "Kiem tra va sua theo quy chuan BDD100K"),
+            "reviewer_status": note_entry.get("status", "Cần sửa (Pending)"),
+            "reviewer_comment": note_entry.get("comment", ""),
         })
     return output.getvalue()
 
 
-def export_csv(report: QCReport, output_path) -> None:
+def export_csv(report: QCReport, output_path, reviewer_notes: Optional[dict] = None) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    csv_content = generate_csv_str(report)
+    csv_content = generate_csv_str(report, reviewer_notes=reviewer_notes)
     path.write_text(csv_content, encoding="utf-8-sig")
     print(f"[OK] CSV saved: {path}")
+
+
+def export_coco_json(frames: list) -> str:
+    """Chuyen doi danh sach FrameData thanh tap nhan chuan COCO JSON (instances_default.json)."""
+    import json
+    cat_names = set()
+    for f in frames:
+        for obj in f.objects:
+            if obj.category:
+                cat_names.add(obj.category.strip().lower())
+
+    cat_list = sorted(list(cat_names)) if cat_names else ["car", "pedestrian", "truck", "bus", "traffic light"]
+    cat_to_id = {name: idx + 1 for idx, name in enumerate(cat_list)}
+
+    coco_categories = [{"id": cid, "name": cname, "supercategory": "none"} for cname, cid in cat_to_id.items()]
+    coco_images = []
+    coco_annotations = []
+    ann_id = 1
+
+    for img_id, f in enumerate(frames, start=1):
+        coco_images.append({
+            "id": img_id,
+            "file_name": f.name,
+            "width": f.width,
+            "height": f.height,
+        })
+
+        for obj in f.objects:
+            cname = (obj.category or "car").strip().lower()
+            cid = cat_to_id.get(cname, 1)
+
+            bbox_coco = []
+            area = 0.0
+            if obj.box2d:
+                bx = obj.box2d
+                bbox_coco = [round(bx.x1, 1), round(bx.y1, 1), round(bx.width, 1), round(bx.height, 1)]
+                area = round(bx.area, 1)
+
+            seg_coco = []
+            if obj.poly2d and obj.poly2d.vertices:
+                flat_poly = []
+                for pt in obj.poly2d.vertices:
+                    flat_poly.extend([round(pt[0], 1), round(pt[1], 1)])
+                seg_coco = [flat_poly]
+                if area == 0.0 and hasattr(obj.poly2d, "area"):
+                    area = round(obj.poly2d.area, 1)
+
+            if bbox_coco or seg_coco:
+                coco_annotations.append({
+                    "id": ann_id,
+                    "image_id": img_id,
+                    "category_id": cid,
+                    "bbox": bbox_coco if bbox_coco else [0, 0, 0, 0],
+                    "area": area,
+                    "segmentation": seg_coco,
+                    "iscrowd": 0,
+                    "attributes": obj.attributes or {},
+                })
+                ann_id += 1
+
+    coco_doc = {
+        "info": {
+            "description": "BDD-QC Suite Cleaned & Validated COCO Export",
+            "version": "2.6.0",
+            "year": 2026,
+            "contributor": "Project N2-04A Team",
+        },
+        "images": coco_images,
+        "annotations": coco_annotations,
+        "categories": coco_categories,
+    }
+    return json.dumps(coco_doc, indent=2, ensure_ascii=False)
+
+
+def export_yolo_zip_bytes(frames: list) -> bytes:
+    """Xuat toan bo nhan bounding box ra tep nen ZIP chua cac file TXT chuan YOLO."""
+    import io
+    import zipfile
+    cat_names = set()
+    for f in frames:
+        for obj in f.objects:
+            if obj.category:
+                cat_names.add(obj.category.strip().lower())
+
+    cat_list = sorted(list(cat_names)) if cat_names else ["car", "pedestrian", "truck", "bus", "traffic light"]
+    cat_to_id = {name: idx for idx, name in enumerate(cat_list)}
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 1. classes.txt
+        zf.writestr("classes.txt", "\n".join(cat_list) + "\n")
+
+        # 2. File txt cua tung frame
+        for f in frames:
+            fw = float(f.width) if f.width > 0 else 1920.0
+            fh = float(f.height) if f.height > 0 else 1080.0
+
+            stem = Path(f.name).stem
+            lines = []
+            for obj in f.objects:
+                if not obj.box2d:
+                    continue
+                cname = (obj.category or "car").strip().lower()
+                cid = cat_to_id.get(cname, 0)
+                bx = obj.box2d
+                xc = ((bx.x1 + bx.x2) / 2.0) / fw
+                yc = ((bx.y1 + bx.y2) / 2.0) / fh
+                w = bx.width / fw
+                h = bx.height / fh
+                lines.append(f"{cid} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
+
+            zf.writestr(f"{stem}.txt", "\n".join(lines) + "\n" if lines else "")
+
+    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -429,12 +557,56 @@ tr:hover td {{ background: rgba(56, 189, 248, 0.04); }}
 .footer {{
     margin-top: 24px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #64748b;
-    font-size: 0.78rem;
-    border-top: 1px solid var(--card-border);
     padding-top: 16px;
+}}
+
+/* Print styles for PDF export */
+@media print {{
+    body {{
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 12px !important;
+    }}
+    .header-meta, .filter-bar, .btn-print {{
+        display: none !important;
+    }}
+    .header {{
+        border-bottom: 2px solid #0284c7 !important;
+    }}
+    h1 {{
+        color: #0f172a !important;
+    }}
+    .card {{
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+    }}
+    .card .lbl {{ color: #475569 !important; }}
+    .card .val {{ color: #0f172a !important; }}
+    .table-container {{
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+    }}
+    thead {{
+        background: #f1f5f9 !important;
+    }}
+    th {{
+        color: #0f172a !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }}
+    td {{
+        color: #1e293b !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }}
+    .badge-error {{ background: #fee2e2 !important; color: #b91c1c !important; border: 1px solid #ef4444 !important; }}
+    .badge-warning {{ background: #fef3c7 !important; color: #b45309 !important; border: 1px solid #f59e0b !important; }}
+    .chip-class {{ background: #f3e8ff !important; color: #6b21a8 !important; border: 1px solid #c084fc !important; }}
+    .chip-rule {{ background: #e0f2fe !important; color: #0369a1 !important; border: 1px solid #7dd3fc !important; }}
+    .footer {{
+        color: #64748b !important;
+        border-top: 1px solid #cbd5e1 !important;
+    }}
 }}
 </style>
 </head>
