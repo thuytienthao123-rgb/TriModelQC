@@ -121,9 +121,26 @@ So với Tuần 04 (mới chỉ dừng lại ở 10 rules hình học và thuộ
 ## 3. Tóm tắt những gì đã đạt được (Tổng kết hiện trạng nhánh song song)
 
 1. **Về mặt quy trình & Kế hoạch (Planning):** Đã thống nhất và hoàn tất toàn bộ tài liệu đặc tả luồng xử lý của hệ thống; xác định rõ vai trò của việc kiểm tra tự động là đưa ra cảnh báo và đề xuất hỗ trợ, quyền quyết định nghiệm thu cuối cùng thuộc về người kiểm duyệt.
-2. **Về mặt giao diện người dùng (UI/UX):** Đã hoàn thành các phân hệ giao diện (tiếp nhận nạp dữ liệu, hiển thị hình ảnh đối sánh trực quan, danh sách hàng đợi phân cấp ưu tiên, bảng phê duyệt/từ chối của reviewer, màn hình quản lý tiêu chuẩn và xuất báo cáo).
-3. **Về mặt xử lý nghiệp vụ (Core Logic):** Bộ quy tắc kiểm tra cấu trúc dữ liệu đã hoạt động ổn định và lọc được các lỗi sai cơ bản; module đánh giá tự động bước đầu tạo ra các gợi ý và chỉ số so sánh.
-4. **Về mặt thử nghiệm thực tế (Testing & Experimentation):** Đã chạy kiểm thử thành công toàn bộ luồng quy trình trên tập dữ liệu mẫu; các gói dữ liệu mẫu bước đầu cho kết quả khả quan.
+2. **Về mặt giao diện người dùng (UI/UX):** Đã hoàn thành các phân hệ giao diện:
+   - Màn hình tiếp nhận và nạp dữ liệu.
+   - Màn hình hiển thị hình ảnh và đối sánh trực quan.
+   - Danh sách hàng đợi phân cấp ưu tiên các trường hợp nghi ngờ lỗi.
+   - Bảng thao tác phê duyệt / từ chối cảnh báo của người kiểm duyệt.
+   - Màn hình quản lý tiêu chuẩn kiểm tra và màn hình xuất báo cáo kết quả.
+3. **Về mặt xử lý nghiệp vụ (Core Logic):** Bộ quy tắc kiểm tra cấu trúc dữ liệu đã hoạt động ổn định và lọc được các lỗi sai cơ bản; module đánh giá tự động bước đầu tạo ra các gợi ý và chỉ số so sánh; đã có cơ chế liên kết và chuyển giao dữ liệu cảnh báo sang hệ thống quản lý công việc bên ngoài khi cần thiết.
+4. **Về mặt thử nghiệm thực tế (Testing & Experimentation):** Đã chạy kiểm thử thành công toàn bộ luồng quy trình từ khâu nạp tập dữ liệu mẫu, quét lỗi tự động, hiển thị kết quả trên giao diện cho đến xuất tệp báo cáo tổng hợp; các gói dữ liệu mẫu bước đầu cho kết quả khả quan, đáp ứng đúng theo các kịch bản đã đề ra.
+
+---
+
+## 4. Các công việc đang trong giai đoạn thử nghiệm & tinh chỉnh (Nhánh song song)
+- **Đo lường và tối ưu thời gian xử lý:** Đang thử nghiệm xử lý đồng thời với khối lượng dữ liệu lớn hơn để theo dõi hiệu suất và dung lượng bộ nhớ.
+- **Hiệu chỉnh độ nhạy của cảnh báo:** Đang rà soát lại các tiêu chí cảnh báo tự động nhằm hạn chế tình trạng báo nhầm (false positives) đối với các trường hợp dữ liệu hợp lệ.
+- **Tối ưu trải nghiệm thao tác:** Thử nghiệm giao diện thực tế để cải thiện tốc độ duyệt của người dùng (bổ sung bộ lọc, phân trang và gom nhóm các lỗi tương đồng).
+
+---
+
+## 5. Vướng mắc (Nhánh song song)
+- Sẽ báo cáo và trao đổi trực tiếp trong buổi mentor duty.
 
 ---
 
