@@ -1,0 +1,78 @@
+[
+  {
+    "name": "frame_0001.jpg",
+    "labels": [
+      {
+        "id": "obj_01_car_sedan",
+        "category": "car",
+        "box2d": { "x1": 120.0, "y1": 180.0, "x2": 340.0, "y2": 320.0 },
+        "attributes": { "occluded": false, "truncated": false }
+      },
+      {
+        "id": "obj_02_pedestrian_cross",
+        "category": "pedestrian",
+        "box2d": { "x1": 420.0, "y1": 210.0, "x2": 465.0, "y2": 350.0 },
+        "attributes": { "occluded": false, "truncated": false }
+      },
+      {
+        "id": "obj_03_traffic_light_red",
+        "category": "traffic light",
+        "box2d": { "x1": 560.0, "y1": 60.0, "x2": 595.0, "y2": 150.0 },
+        "attributes": { "occluded": false, "truncated": false, "trafficLightColor": "red" }
+      },
+      {
+        "id": "obj_04_bus_transit",
+        "category": "bus",
+        "box2d": { "x1": 680.0, "y1": 160.0, "x2": 980.0, "y2": 420.0 },
+        "attributes": { "occluded": true, "truncated": false }
+      },
+      {
+        "id": "obj_05_truck_delivery",
+        "category": "truck",
+        "box2d": { "x1": 1010.0, "y1": 190.0, "x2": 1240.0, "y2": 390.0 },
+        "attributes": { "occluded": false, "truncated": false }
+      },
+      {
+        "id": "obj_06_rider_cyclist",
+        "category": "rider",
+        "box2d": { "x1": 360.0, "y1": 240.0, "x2": 415.0, "y2": 360.0 },
+        "poly2d": [
+          {
+            "vertices": [
+              [360.0, 240.0],
+              [415.0, 240.0],
+              [415.0, 360.0],
+              [360.0, 360.0]
+            ],
+            "types": "cc",
+            "closed": true
+          }
+        ],
+        "attributes": { "occluded": false, "truncated": false }
+      }
+    ]
+  },
+  {
+    "name": "frame_0002.jpg",
+    "labels": [
+      {
+        "id": "obj_01_car_sedan",
+        "category": "car",
+        "box2d": { "x1": 135.0, "y1": 182.0, "x2": 355.0, "y2": 322.0 },
+        "attributes": { "occluded": false, "truncated": false }
+      },
+      {
+        "id": "obj_02_pedestrian_cross",
+        "category": "pedestrian",
+        "box2d": { "x1": 425.0, "y1": 210.0, "x2": 470.0, "y2": 350.0 },
+        "attributes": { "occluded": false, "truncated": false }
+      },
+      {
+        "id": "obj_03_traffic_light_red",
+        "category": "traffic light",
+        "box2d": { "x1": 560.0, "y1": 60.0, "x2": 595.0, "y2": 150.0 },
+        "attributes": { "occluded": false, "truncated": false, "trafficLightColor": "red" }
+      }
+    ]
+  }
+]

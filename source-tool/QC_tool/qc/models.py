@@ -44,6 +44,11 @@ class BBox2D:
         """Tọa độ tâm (xc, yc) của bounding box."""
         return ((self.x1 + self.x2) / 2.0, (self.y1 + self.y2) / 2.0)
 
+    @property
+    def aspect_ratio(self) -> float:
+        """Tỉ lệ w / h (an toàn khi h = 0)."""
+        return self.width / self.height if self.height > 0 else 0.0
+
     def iou(self, other: "BBox2D") -> float:
         """Tính Intersection over Union với box khác."""
         ix1 = max(self.x1, other.x1)
