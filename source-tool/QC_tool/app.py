@@ -148,20 +148,17 @@ def main():
 
     # 7. Trang Chờ (Khi chưa bấm Checking)
     if report is None:
-        render_welcome_screen(
+        start_btn, reload_btn = render_welcome_screen(
             all_sources=all_sources,
             uploaded_image_map=uploaded_image_map,
             total_rules_active=total_rules_active,
         )
-        c_btn1, c_btn2, _ = st.columns([3.5, 2, 4.5])
-        with c_btn1:
-            if st.button("🚀 BẮT ĐẦU KIỂM TRA (CHECKING)", type="primary", use_container_width=True, key="btn_welcome_check"):
-                _execute_qc()
-                st.rerun()
-        with c_btn2:
-            if st.button("🔄 TẢI LẠI (RELOAD)", use_container_width=True, key="btn_welcome_reload"):
-                st.session_state["qc_report"] = None
-                st.rerun()
+        if start_btn:
+            _execute_qc()
+            st.rerun()
+        if reload_btn:
+            st.session_state["qc_report"] = None
+            st.rerun()
         st.stop()
 
     # 8. Dashboard Kết quả: Thống kê KPI & Quyết Định Nghiệm Thu

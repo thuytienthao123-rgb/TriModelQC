@@ -16,17 +16,7 @@ from ui.io_utils import find_matching_image, read_file_bytes, scan_folder
 
 def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     """Render thanh công cụ bên trái (Sidebar) và trả về cấu hình phiên làm việc."""
-    # 0. Chuyển đổi Theme
-    theme_choice = st.sidebar.radio(
-        "🎨 Chế độ hiển thị (Theme):",
-        options=["🌑 Scale Dark (Tối)", "☀️ Studio Light (Sáng)"],
-        index=0,
-        horizontal=True,
-        help="Chuyển đổi giao diện Sáng / Tối theo nhu cầu làm việc"
-    )
-    is_dark = ("Dark" in theme_choice or "Tối" in theme_choice)
-
-    # Brand card
+    # 1. Khối thương hiệu/logo đưa lên vị trí trên cùng của Sidebar
     st.sidebar.markdown("""
     <div class="sidebar-brand-card">
         <div class="sidebar-brand-icon">🛡️</div>
@@ -232,14 +222,14 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     st.sidebar.subheader("🚀 5. Điều Khiển QC")
     btn_col1, btn_col2 = st.sidebar.columns([3, 2])
     run_btn = btn_col1.button(
-        "🚀 Checking",
+        "🚀 Bắt đầu",
         use_container_width=True,
         type="primary",
         disabled=not all_sources,
         help="Bắt đầu chạy kiểm tra QC trên các file đã nạp",
     )
     reset_btn = btn_col2.button(
-        "🔄 Reload",
+        "🔄 Làm mới",
         use_container_width=True,
         help="Tải lại / Xóa cache kết quả kiểm tra",
     )
@@ -255,6 +245,17 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
         <div class="team-member-row"><span class="team-member-name">Trần Thị Thủy Tiên</span><span class="team-member-role">Attr QC</span></div>
     </div>
     """, unsafe_allow_html=True)
+
+    # 6. Chuyển đổi Theme ở dưới cùng của Sidebar
+    st.sidebar.markdown("---")
+    theme_choice = st.sidebar.radio(
+        "Chế độ hiển thị (Theme):",
+        options=["🌙 Tối", "☀️ Sáng"],
+        index=0,
+        horizontal=True,
+        help="Chuyển đổi giao diện Sáng / Tối theo nhu cầu làm việc"
+    )
+    is_dark = ("Tối" in theme_choice or "Dark" in theme_choice)
 
     return {
         "is_dark": is_dark,

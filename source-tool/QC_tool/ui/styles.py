@@ -37,12 +37,12 @@ def apply_custom_css(is_dark: bool):
         bg_card = "#ffffff"
         bg_card_sub = "#f1f5f9"
         border_c = "#e2e8f0"
-        border_header = "#0284c7"
+        border_header = "#2563eb"
         text_main = "#0f172a"
         text_sub = "#475569"
         text_muted = "#334155"
         badge_bg = "#f1f5f9"
-        val_cyan = "#0284c7"
+        val_cyan = "#2563eb"
         val_indigo = "#4f46e5"
         val_rose = "#e11d48"
         val_amber = "#d97706"
@@ -54,12 +54,34 @@ def apply_custom_css(is_dark: bool):
         badge_warn_txt = "#b45309"
         badge_ok_bg = "#d1fae5"
         badge_ok_txt = "#047857"
-        tab_active_bg = "rgba(2, 132, 199, 0.08)"
-        glow_cyan = "0 0 15px rgba(2, 132, 199, 0.18)"
+        tab_active_bg = "rgba(37, 99, 235, 0.08)"
+        glow_cyan = "0 0 15px rgba(37, 99, 235, 0.2)"
 
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    /* 6. Clean Streamlit Default Chrome */
+    #MainMenu, footer {{
+        visibility: hidden !important;
+        height: 0 !important;
+    }}
+    header {{
+        visibility: hidden !important;
+        height: 0 !important;
+    }}
+    header button[data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {{
+        visibility: visible !important;
+        display: flex !important;
+        z-index: 999999 !important;
+    }}
+    .block-container {{
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
+        max-width: 100% !important;
+    }}
 
     .stApp {{
         background-color: {bg_main} !important;
@@ -102,25 +124,27 @@ def apply_custom_css(is_dark: bool):
     [data-baseweb="tab"]:hover {{
         color: {val_cyan} !important;
         background: {tab_active_bg} !important;
-        border-color: rgba(0, 229, 255, 0.2) !important;
+        border-color: rgba(37, 99, 235, 0.2) !important;
     }}
     [data-baseweb="tab"][aria-selected="true"] {{
         background: {tab_active_bg} !important;
         border-bottom: 2px solid {val_cyan} !important;
         color: {val_cyan} !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 15px -3px rgba(0, 229, 255, 0.25) !important;
+        box-shadow: 0 4px 15px -3px rgba(37, 99, 235, 0.25) !important;
     }}
 
     /* Buttons Elevation */
     .stButton > button {{
         border-radius: 8px !important;
         font-weight: 600 !important;
-        font-size: 0.85rem !important;
-        padding: 7px 16px !important;
+        font-size: 0.88rem !important;
+        padding: 8px 18px !important;
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         border: 1px solid {border_c} !important;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        background-color: {bg_card} !important;
+        color: {text_main} !important;
     }}
     .stButton > button:hover {{
         transform: translateY(-1.5px) !important;
@@ -131,16 +155,22 @@ def apply_custom_css(is_dark: bool):
         transform: translateY(0.5px) !important;
     }}
 
+    /* 4. Action Buttons (Primary #2563EB with text white) */
     .stButton > button[kind="primary"] {{
-        background: linear-gradient(135deg, {val_cyan} 0%, #0284c7 100%) !important;
-        color: #080c14 !important;
-        font-weight: 800 !important;
-        border: none !important;
-        box-shadow: {glow_cyan} !important;
+        background: #2563eb !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border: 1px solid #1d4ed8 !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+    }}
+    .stButton > button[kind="primary"] * {{
+        color: #ffffff !important;
     }}
     .stButton > button[kind="primary"]:hover {{
-        box-shadow: 0 0 25px rgba(0, 229, 255, 0.55) !important;
-        transform: translateY(-2px) !important;
+        background: #1d4ed8 !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 20px rgba(29, 78, 216, 0.45) !important;
+        transform: translateY(-1.5px) !important;
     }}
 
     /* Input & Select Streamlit Customization */
@@ -433,29 +463,89 @@ def apply_custom_css(is_dark: bool):
         font-size: 0.7rem;
     }}
 
+    /* 3. Equal-height Feature Cards */
     .feature-card {{
         background: {bg_card};
         border: 1px solid {border_c};
         border-radius: 10px;
-        padding: 16px 18px;
+        padding: 18px 20px;
         height: 100%;
+        min-height: 155px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-shadow: {box_shadow};
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
     }}
     .feature-card:hover {{
         transform: translateY(-2.5px);
         border-color: {val_cyan};
-        box-shadow: {box_shadow};
     }}
     .feature-title {{
-        font-size: 0.94rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: {text_main};
-        margin-bottom: 6px;
+        color: {text_main} !important;
+        margin-bottom: 8px;
     }}
     .feature-desc {{
-        font-size: 0.8rem;
-        color: {text_sub};
-        line-height: 1.55;
+        font-size: 0.82rem;
+        color: {text_sub} !important;
+        line-height: 1.5;
+        flex-grow: 1;
+    }}
+
+    /* 1. Welcome Screen Banner (WCAG High-Contrast) */
+    .qc-welcome-banner {{
+        background: {"#F0F7FF" if not is_dark else "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)"};
+        border: 1px solid {"#E2E8F0" if not is_dark else "rgba(255,255,255,0.08)"};
+        border-left: 4px solid {"#2563EB" if not is_dark else "#00e5ff"};
+        border-radius: 12px;
+        padding: 22px 24px;
+        margin-bottom: 20px;
+        box-shadow: {box_shadow};
+    }}
+    .qc-welcome-title {{
+        color: {"#0F172A" if not is_dark else "#F8FAFC"} !important;
+        font-size: 1.28rem;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }}
+    .qc-welcome-desc {{
+        color: {"#475569" if not is_dark else "#94A3B8"} !important;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        margin: 0;
+    }}
+
+    /* 2. Welcome Metrics Cards */
+    .qc-welcome-metric {{
+        background: {"#F8FAFC" if not is_dark else "#111827"};
+        border: 1px solid {"#E2E8F0" if not is_dark else "#1E293B"};
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        transition: border-color 0.2s ease;
+    }}
+    .qc-welcome-metric:hover {{
+        border-color: {val_cyan};
+    }}
+    .qc-welcome-metric-label {{
+        font-size: 0.78rem;
+        color: {"#64748B" if not is_dark else "#94A3B8"} !important;
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }}
+    .qc-welcome-metric-val {{
+        font-size: 1.45rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        color: {"#0F172A" if not is_dark else "#F8FAFC"} !important;
     }}
 
     .benchmark-card {{

@@ -10,19 +10,19 @@ def render_header(total_rules_active: int, ai_model: Any, enable_ai_check: bool)
     ai_status_tag = (
         '<span class="qc-tag qc-tag-online">● YOLOv8 AI ACTIVE</span>'
         if (ai_model and enable_ai_check)
-        else '<span class="qc-tag" style="background: rgba(148,163,184,0.12); color: #cbd5e1; border: 1px solid #334155;">○ AI OFFLINE</span>'
+        else '<span class="qc-tag" style="background: rgba(100,116,139,0.12); color: #64748b; border: 1px solid #cbd5e1;">○ AI OFFLINE</span>'
     )
 
     st.markdown(f"""
     <div class="qc-header-box">
         <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
             <div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #00e5ff; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px;" class="val-cyan">
                     SCALE NUCLEUS // QA AUDIT SUITE
                 </div>
                 <h1 class="qc-header-title">
-                    BDD100K <span style="color: #00e5ff; font-weight: 400;">QUALITY CONTROL WORKSPACE</span>
-                    <span style="font-size: 0.8rem; background: rgba(0, 229, 255, 0.12); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.35); padding: 2px 8px; border-radius: 4px; font-weight: 600; vertical-align: middle;">v2.6 PRO</span>
+                    BDD100K <span class="val-cyan" style="font-weight: 500;">QUALITY CONTROL WORKSPACE</span>
+                    <span style="font-size: 0.8rem; background: rgba(37, 99, 235, 0.1); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.3); padding: 2px 8px; border-radius: 4px; font-weight: 600; vertical-align: middle;">v2.6 PRO</span>
                 </h1>
                 <p class="qc-header-sub">Automated Spatial Linter, Polygon Topology Audit & Defect Remediation Engine · Project N2-04A</p>
             </div>
@@ -44,26 +44,61 @@ def render_welcome_screen(
     all_sources: List[Tuple[str, List[FrameData]]],
     uploaded_image_map: Dict[str, Any],
     total_rules_active: int,
-):
-    """Trang chờ và giới thiệu khi người dùng chưa bấm Checking."""
+) -> Tuple[bool, bool]:
+    """Trang chờ và giới thiệu luồng thao tác: (2) Banner -> (3) Metrics -> (4) Action Buttons -> (5) 4 Pillars."""
     n_files = len(all_sources)
     n_frames = sum(len(frs) for _, frs in all_sources)
     n_imgs = len(uploaded_image_map) // 2 if uploaded_image_map else 0
 
+    # (2) Khối Banner thông báo chuẩn WCAG độ tương phản cao
     st.markdown("""
-    <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 26px; margin-bottom: 24px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);">
-        <h3 style="margin-top:0; color: #f8fafc; font-size: 1.35rem; display: flex; align-items: center; gap: 10px;">📋 Sẵn sàng kiểm tra chất lượng dữ liệu nhãn</h3>
-        <p style="color: #94a3b8; font-size: 0.92rem; line-height: 1.6;">Hệ thống đã nhận diện cấu trúc file thành công. Nhấn nút <strong>BẮT ĐẦU KIỂM TRA</strong> để chạy quét tự động qua 15 rules toán học và đối soát AI YOLOv8.</p>
+    <div class="qc-welcome-banner">
+        <h3 class="qc-welcome-title">📋 Sẵn sàng kiểm tra chất lượng dữ liệu nhãn</h3>
+        <p class="qc-welcome-desc">Hệ thống đã nhận diện cấu trúc file thành công. Nhấn nút <strong>BẮT ĐẦU KIỂM TRA</strong> để chạy quét tự động qua 15 rules toán học và đối soát AI YOLOv8.</p>
     </div>
     """, unsafe_allow_html=True)
 
+    # (3) Hàng 4 chỉ số thống kê đóng khung dạng thẻ nhẹ
     r1, r2, r3, r4 = st.columns(4)
-    r1.metric("📄 File nhãn đã nạp", f"{n_files} file")
-    r2.metric("🎬 Frames phát hiện", f"{n_frames} frame")
-    r3.metric("🖼️ Ảnh minh họa gốc", f"{n_imgs} ảnh")
-    r4.metric("⚙️ Rules kích hoạt", f"{total_rules_active} / 15")
+    with r1:
+        st.markdown(f"""
+        <div class="qc-welcome-metric">
+            <div class="qc-welcome-metric-label">📄 File nhãn đã nạp</div>
+            <div class="qc-welcome-metric-val">{n_files} <span style="font-size: 0.85rem; font-weight: 500; color: #64748b;">file</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+    with r2:
+        st.markdown(f"""
+        <div class="qc-welcome-metric">
+            <div class="qc-welcome-metric-label">🎬 Frames phát hiện</div>
+            <div class="qc-welcome-metric-val">{n_frames} <span style="font-size: 0.85rem; font-weight: 500; color: #64748b;">frame</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+    with r3:
+        st.markdown(f"""
+        <div class="qc-welcome-metric">
+            <div class="qc-welcome-metric-label">🖼️ Ảnh minh họa gốc</div>
+            <div class="qc-welcome-metric-val">{n_imgs} <span style="font-size: 0.85rem; font-weight: 500; color: #64748b;">ảnh</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+    with r4:
+        st.markdown(f"""
+        <div class="qc-welcome-metric">
+            <div class="qc-welcome-metric-label">⚙️ Rules kích hoạt</div>
+            <div class="qc-welcome-metric-val">{total_rules_active} <span style="font-size: 0.85rem; font-weight: 500; color: #64748b;">/ 15</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # (4) Cụm 2 nút hành động ("🚀 BẮT ĐẦU KIỂM TRA" và "🔄 LÀM MỚI") nằm ngay dưới metrics
+    c_btn1, c_btn2, _ = st.columns([2.8, 1.8, 5.4])
+    with c_btn1:
+        start_btn = st.button("🚀 BẮT ĐẦU KIỂM TRA", type="primary", use_container_width=True, key="btn_welcome_check")
+    with c_btn2:
+        reload_btn = st.button("🔄 LÀM MỚI", use_container_width=True, key="btn_welcome_reload")
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # (5) 4 Trụ Cột Kiểm Soát Chất Lượng (Quality Pillars) đưa xuống dưới làm thông tin tham khảo
     st.markdown("#### 🌟 4 Trụ Cột Kiểm Soát Chất Lượng (Quality Pillars):")
     fcol1, fcol2, fcol3, fcol4 = st.columns(4)
     with fcol1:
@@ -94,6 +129,8 @@ def render_welcome_screen(
             <div class="feature-desc">Kiểm tra tính liên tục chuỗi frame (mất dấu flicker T01, nhảy tọa độ giật T02) và trợ lý AI YOLOv8 đối soát vật thể bị bỏ sót (AI01).</div>
         </div>
         """, unsafe_allow_html=True)
+
+    return start_btn, reload_btn
 
 
 def render_kpi_dashboard(report: QCReport, all_sources: List[Tuple[str, List[FrameData]]]):
