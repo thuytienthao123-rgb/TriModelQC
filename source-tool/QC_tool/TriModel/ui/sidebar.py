@@ -32,48 +32,40 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     # Chuyển đổi ngôn ngữ hệ thống (Tiếng Việt / English)
     curr_lang = get_current_lang()
     lang_labels = ["Tiếng Việt 🇻🇳", "English 🇺🇸"]
+    lang_idx = 0 if curr_lang == "vi" else 1
 
-    def _on_sidebar_lang_change():
-        chosen = st.session_state.get("global_lang_selector", "")
-        new_l = "vi" if "Tiếng Việt" in chosen else "en"
-        set_current_lang(new_l)
-        st.session_state["top_bar_lang_radio"] = "Tiếng Việt 🇻🇳" if new_l == "vi" else "English 🇺🇸"
-
-    if "global_lang_selector" not in st.session_state:
-        st.session_state["global_lang_selector"] = "Tiếng Việt 🇻🇳" if curr_lang == "vi" else "English 🇺🇸"
-
-    st.sidebar.radio(
-        t("lang_label"),
+    selected_lang = st.sidebar.radio(
+        "🌐 Ngôn ngữ / Language:",
         options=lang_labels,
-        key="global_lang_selector",
-        on_change=_on_sidebar_lang_change,
+        index=lang_idx,
+        key="qc_sidebar_lang_radio",
         horizontal=True,
         help="Chuyển đổi ngôn ngữ giao diện (Switch Interface Language)",
     )
+    new_lang = "vi" if "Tiếng Việt" in selected_lang else "en"
+    if new_lang != curr_lang:
+        set_current_lang(new_lang)
+        st.rerun()
 
     # Chuyển đổi giao diện Sáng / Tối (Theme Mode)
-    theme_title = "🎨 Giao diện (Theme):" if curr_lang == "vi" else "🎨 Theme Mode:"
-    theme_options = ["🌙 Tối (Dark)", "☀️ Sáng (Light)"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"]
+    cur_theme = st.session_state.get("global_theme_mode", "dark")
+    theme_labels = ["🌙 Dark (Tối)", "☀️ Light (Sáng)"]
+    theme_idx = 0 if cur_theme == "dark" else 1
 
-    def _on_sidebar_theme_change():
-        chosen = st.session_state.get("sidebar_theme_radio", "")
-        new_mode = "dark" if ("Tối" in chosen or "Dark" in chosen) else "light"
-        st.session_state["global_theme_mode"] = new_mode
-        st.session_state["top_bar_theme_radio"] = "🌙 Nền Tối" if new_mode == "dark" else "☀️ Nền Sáng"
-
-    saved_theme = st.session_state.get("global_theme_mode", "dark")
-    if "sidebar_theme_radio" not in st.session_state:
-        st.session_state["sidebar_theme_radio"] = "🌙 Tối (Dark)" if saved_theme == "dark" else "☀️ Sáng (Light)"
-
-    st.sidebar.radio(
-        theme_title,
-        options=theme_options,
-        key="sidebar_theme_radio",
-        on_change=_on_sidebar_theme_change,
+    selected_theme = st.sidebar.radio(
+        "🎨 Giao diện / Theme:",
+        options=theme_labels,
+        index=theme_idx,
+        key="qc_sidebar_theme_radio",
         horizontal=True,
-        help="Chuyển đổi giữa chế độ nền tối (Dark Mode) và nền sáng (Light Mode)" if curr_lang == "vi" else "Switch between Dark and Light theme mode",
+        help="Chuyển đổi giữa chế độ nền tối (Dark Mode) và nền sáng (Light Mode)",
     )
-    is_dark = (st.session_state.get("global_theme_mode", "dark") == "dark")
+    new_theme = "dark" if "Dark" in selected_theme else "light"
+    if new_theme != cur_theme:
+        st.session_state["global_theme_mode"] = new_theme
+        st.rerun()
+
+    is_dark = (new_theme == "dark")
 
     # 1. Nguồn Dữ Liệu
     st.sidebar.markdown("---")
