@@ -130,6 +130,24 @@ def render_tab_visualizer(
         zoom_opts = ["1.5x (Wide)", "2.5x (Standard)", "4.0x (Extreme)"]
         cap_overview = "🌐 Full overview mode. Enable Focus Loupe to inspect contour pixel boundaries."
 
+    # Khởi tạo mặc định các lớp hiển thị và kính lúp nếu chưa có trong session_state
+    if "scale_show_err" not in st.session_state:
+        st.session_state["scale_show_err"] = True
+    if "scale_show_warn" not in st.session_state:
+        st.session_state["scale_show_warn"] = True
+    if "scale_show_valid" not in st.session_state:
+        st.session_state["scale_show_valid"] = True
+    if "scale_show_labels" not in st.session_state:
+        st.session_state["scale_show_labels"] = True
+    if "scale_show_grid" not in st.session_state:
+        st.session_state["scale_show_grid"] = False
+    if "scale_focus_zoom" not in st.session_state:
+        st.session_state["scale_focus_zoom"] = False
+    if "scale_zoom_factor" not in st.session_state or st.session_state["scale_zoom_factor"] not in zoom_opts:
+        cur_z = st.session_state.get("scale_zoom_factor", "")
+        matched = next((opt for opt in zoom_opts if opt[:4] in cur_z), zoom_opts[0])
+        st.session_state["scale_zoom_factor"] = matched
+
     st.markdown(f"""
     <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
         <div>
@@ -335,18 +353,15 @@ def render_tab_visualizer(
             with v_col1:
                 is_focus_zoom = st.toggle(
                     lbl_loupe_toggle,
-                    value=st.session_state.get("scale_focus_zoom", False),
+                    key="scale_focus_zoom",
                     help=help_loupe,
-                    key="toggle_focus_zoom",
                 )
-                st.session_state["scale_focus_zoom"] = is_focus_zoom
 
             with v_col2:
                 if is_focus_zoom:
                     zoom_factor = st.select_slider(
                         lbl_zoom_slider,
                         options=zoom_opts,
-                        value=st.session_state.get("scale_zoom_factor", zoom_opts[1]),
                         key="scale_zoom_factor",
                     )
                 else:
@@ -379,6 +394,9 @@ def render_tab_visualizer(
             show_lbl_ly = st.session_state.get("scale_show_labels", True)
             show_grid_ly = st.session_state.get("scale_show_grid", False)
             focus_id = st.session_state.get("scale_focused_obj_id", None)
+            sel_inspect_str = st.session_state.get("scale_inspector_obj_select", "")
+            if sel_inspect_str and not sel_inspect_str.startswith("🔍"):
+                focus_id = sel_inspect_str.split()[0]
             ai_predicted_poly = st.session_state.get("scale_ai_predicted_poly", None)
 
             focused_obj_target: Optional[LabeledObject] = None
@@ -529,43 +547,99 @@ def render_tab_visualizer(
                         )
 
             # Handle Auto-Focus Zoom Viewport
-            if is_focus_zoom and focused_obj_target is not None:
-                bx_t = focused_obj_target.box2d
-                if bx_t is not None:
-                    cx = (bx_t.x1 + bx_t.x2) / 2.0
-                    cy = (bx_t.y1 + bx_t.y2) / 2.0
-                    bw = max(20.0, bx_t.width)
-                    bh = max(20.0, bx_t.height)
+            if is_focus_zoom:
+                zoom_str = str(st.session_state.get("scale_zoom_factor", ""))
+                if "4.0x" in zoom_str:
+                    zoom_val = 4.0
+                elif "2.5x" in zoom_str:
+                    zoom_val = 2.5
+                else:
+                    zoom_val = 1.5
 
-                    if "1.5x" in st.session_state.get("scale_zoom_factor", ""):
-                        margin_w = max(120.0, bw * 1.0)
-                        margin_h = max(90.0, bh * 1.0)
-                    elif "4.0x" in st.session_state.get("scale_zoom_factor", ""):
-                        margin_w = max(40.0, bw * 0.35)
-                        margin_h = max(35.0, bh * 0.35)
-                    else:  # 2.5x default
-                        margin_w = max(70.0, bw * 0.65)
-                        margin_h = max(55.0, bh * 0.65)
+                # 1. Xác định tâm phóng đại (Focus Center)
+                hud_target_name = ""
+                if focused_obj_target is not None:
+                    if focused_obj_target.box2d is not None:
+                        bx_t = focused_obj_target.box2d
+                        cx = (bx_t.x1 + bx_t.x2) / 2.0
+                        cy = (bx_t.y1 + bx_t.y2) / 2.0
+                    elif focused_obj_target.poly2d is not None and getattr(focused_obj_target.poly2d, "vertices", None):
+                        xs = [v[0] for v in focused_obj_target.poly2d.vertices]
+                        ys = [v[1] for v in focused_obj_target.poly2d.vertices]
+                        cx = (min(xs) + max(xs)) / 2.0
+                        cy = (min(ys) + max(ys)) / 2.0
+                    else:
+                        cx = canvas_w / 2.0
+                        cy = canvas_h / 2.0
+                    hud_target_name = f"Object: {focused_obj_target.id} ({focused_obj_target.category})"
+                elif cur_frame_errs:
+                    first_err = cur_frame_errs[0]
+                    first_oid = first_err.object_id.split("&")[0].strip()
+                    err_obj = next((o for o in selected_frame.objects if o.id == first_oid), None)
+                    if err_obj is not None and err_obj.box2d is not None:
+                        cx = (err_obj.box2d.x1 + err_obj.box2d.x2) / 2.0
+                        cy = (err_obj.box2d.y1 + err_obj.box2d.y2) / 2.0
+                        hud_target_name = f"Defect: {err_obj.id} ({first_err.rule_id})"
+                    else:
+                        cx = canvas_w / 2.0
+                        cy = canvas_h / 2.0
+                        hud_target_name = "TÂM KHUNG HÌNH" if lang == "vi" else "FRAME CENTER"
+                elif missed_objects:
+                    mbx = missed_objects[0]["box2d"]
+                    cx = (mbx.x1 + mbx.x2) / 2.0
+                    cy = (mbx.y1 + mbx.y2) / 2.0
+                    hud_target_name = f"MISSED: {missed_objects[0]['category']}"
+                else:
+                    cx = canvas_w / 2.0
+                    cy = canvas_h / 2.0
+                    hud_target_name = "TÂM KHUNG HÌNH" if lang == "vi" else "FRAME CENTER"
 
-                    ax.set_xlim(max(0, cx - margin_w), min(canvas_w, cx + margin_w))
-                    ax.set_ylim(min(canvas_h, cy + margin_h), max(0, cy - margin_h))
+                # 2. Tính toán biên cửa sổ phóng đại theo đúng tỉ lệ quang học (Optical Zoom)
+                half_w = (canvas_w / zoom_val) / 2.0
+                half_h = (canvas_h / zoom_val) / 2.0
 
-                    # Zoom HUD Chip inside canvas
-                    ax.text(
-                        max(5, cx - margin_w + 10),
-                        max(20, cy - margin_h + 20),
-                        f"🔍 FOCUS LOUPE ACTIVE · Object: {focused_obj_target.id} ({focused_obj_target.category})",
-                        color="#00e5ff",
-                        fontsize=8.5,
-                        fontfamily="monospace",
-                        weight="bold",
-                        bbox=dict(facecolor="#080c14", edgecolor="#00e5ff", boxstyle="round,pad=0.3", alpha=0.95),
-                    )
+                x_min = cx - half_w
+                x_max = cx + half_w
+                if x_min < 0:
+                    x_max = min(float(canvas_w), x_max + (0.0 - x_min))
+                    x_min = 0.0
+                if x_max > canvas_w:
+                    x_min = max(0.0, x_min - (x_max - canvas_w))
+                    x_max = float(canvas_w)
 
-            if show_grid_ly or is_focus_zoom:
+                y_min = cy - half_h
+                y_max = cy + half_h
+                if y_min < 0:
+                    y_max = min(float(canvas_h), y_max + (0.0 - y_min))
+                    y_min = 0.0
+                if y_max > canvas_h:
+                    y_min = max(0.0, y_min - (y_max - canvas_h))
+                    y_max = float(canvas_h)
+
+                # Invert Y để trục tọa độ phù hợp với hệ pixel ảnh (0 ở trên, canvas_h ở dưới)
+                ax.set_xlim(x_min, x_max)
+                ax.set_ylim(y_max, y_min)
+
+                # Zoom HUD Chip hiển thị thông số phóng đại trên canvas
+                hud_x = x_min + (x_max - x_min) * 0.02
+                hud_y = y_min + (y_max - y_min) * 0.06
+                ax.text(
+                    hud_x,
+                    hud_y,
+                    f"🔍 FOCUS LOUPE {zoom_val:.1f}x · {hud_target_name}",
+                    color="#00e5ff",
+                    fontsize=8.5,
+                    fontfamily="monospace",
+                    weight="bold",
+                    bbox=dict(facecolor="#080c14", edgecolor="#00e5ff", boxstyle="round,pad=0.3", alpha=0.95),
+                )
+
+            # Lưới tọa độ: chỉ hiển thị khi người dùng tick chọn 'Lưới tọa độ' (độc lập hoàn toàn với kính lúp)
+            if show_grid_ly:
                 ax.grid(True, linestyle=":", alpha=0.35, color=border_c)
                 ax.tick_params(colors=text_sub, labelsize=7.5)
             else:
+                ax.grid(False)
                 ax.set_xticks([])
                 ax.set_yticks([])
 
@@ -808,9 +882,9 @@ def render_tab_visualizer(
                 st.markdown(f"<div style='font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>{layers_title}</div>", unsafe_allow_html=True)
                 t_col1, t_col2 = st.columns(2)
                 with t_col1:
-                    st.session_state["scale_show_err"] = st.checkbox("🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"), value=True)
-                    st.session_state["scale_show_warn"] = st.checkbox("🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"), value=True)
-                    st.session_state["scale_show_valid"] = st.checkbox("🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"), value=True)
+                    st.checkbox("🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"), key="scale_show_err")
+                    st.checkbox("🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"), key="scale_show_warn")
+                    st.checkbox("🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"), key="scale_show_valid")
                 with t_col2:
-                    st.session_state["scale_show_labels"] = st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), value=True)
-                    st.session_state["scale_show_grid"] = st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), value=False)
+                    st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), key="scale_show_labels")
+                    st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), key="scale_show_grid")
