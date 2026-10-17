@@ -187,6 +187,21 @@ def render_tab_visualizer(
         st.session_state["active_frame_name"] = error_frame_names[0] if error_frame_names else frame_names_all[0]
 
     # Split workspace: Left 68% for Canvas + Toolbar, Right 32% for Scale Nucleus Inspector
+    st.markdown("""
+    <style>
+    /* Cố định khung ảnh visualizer ở vị trí tự nhiên khi cuộn trang */
+    div[data-testid="column"]:nth-of-type(1) {
+        position: sticky;
+        top: 3rem;
+        align-self: flex-start;
+    }
+    /* Thanh cuộn chuyên dụng cho inspector sidebar */
+    div[data-testid="stVerticalBlockBorderWrapper"] > div {
+        overflow-y: auto !important;
+        scrollbar-width: thin;
+    </style>
+    """, unsafe_allow_html=True)
+
     loaded_img = None
     col_workspace, col_inspector = st.columns([6.8, 3.2])
 
@@ -563,238 +578,239 @@ def render_tab_visualizer(
     # RIGHT PANE: SCALE NUCLEUS OBJECT INSPECTOR (32% Width)
     # -----------------------------------------------------------------------
     with col_inspector:
-        inspector_title = "🎯 BẢNG SOI ĐỐI TƯỢNG & KÍNH LÚP" if lang == "vi" else "🎯 NUCLEUS INSPECTOR & LOUPE"
-        st.markdown(f"""
-        <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; border-top: 3px solid #00e5ff;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 800; color: #00e5ff; letter-spacing: 0.05em;">
-                    {inspector_title}
-                </div>
-                <span style="font-size: 0.7rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">REAL-TIME</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if selected_frame:
-            obj_lookup = {o.id: o for o in selected_frame.objects}
-            cur_frame_errs = frame_error_map.get(selected_frame_name, [])
-
-            # Filter Mode for Inspector
-            f_col1, f_col2 = st.columns([4, 6])
-            with f_col1:
-                filter_opts = (
-                    ["Tất cả", "🚨 Chỉ lỗi vi phạm", "📉 Chỉ Polygon"]
-                    if lang == "vi"
-                    else ["All", "🚨 Defects Only", "📉 Polygons Only"]
-                )
-                inst_filter_mode = st.selectbox(
-                    "Bộ lọc:" if lang == "vi" else "Filter:",
-                    options=filter_opts,
-                    index=0,
-                    key="scale_inspector_filter_mode",
-                )
-
-            filtered_objs = selected_frame.objects
-            if "lỗi" in inst_filter_mode.lower() or "defect" in inst_filter_mode.lower():
-                defect_ids = set()
-                for e in cur_frame_errs:
-                    for s in e.object_id.split("&"):
-                        defect_ids.add(s.strip())
-                filtered_objs = [o for o in selected_frame.objects if o.id in defect_ids]
-            elif "polygon" in inst_filter_mode.lower():
-                filtered_objs = [o for o in selected_frame.objects if o.poly2d is not None]
-
-            # Object Selector
-            all_inst_str = "🔍 TẤT CẢ VẬT THỂ" if lang == "vi" else "🔍 ALL INSTANCES"
-            obj_choices = [all_inst_str] + [f"{o.id} ({o.category})" for o in filtered_objs]
-            with f_col2:
-                sel_obj_str = st.selectbox(
-                    "Chọn đối tượng soi:" if lang == "vi" else "Select Instance:",
-                    options=obj_choices,
-                    index=0,
-                    key="scale_inspector_obj_select",
-                    help="Chọn một đối tượng để kiểm tra chi tiết tọa độ, hình học và thuộc tính" if lang == "vi" else "Inspect detailed coordinates, geometry, and attributes",
-                )
-
-            chosen_id = sel_obj_str.split()[0] if not sel_obj_str.startswith("🔍") else None
-            st.session_state["scale_focused_obj_id"] = chosen_id
-
-            # Case 1: Specific Object Chosen
-            if chosen_id and chosen_id in obj_lookup:
-                target_obj = obj_lookup[chosen_id]
-                obj_errs = [e for e in cur_frame_errs if chosen_id in [x.strip() for x in e.object_id.split("&")]]
-                has_e = any(e.is_error() for e in obj_errs)
-                has_w = any(e.is_warning() for e in obj_errs)
-
-                if has_e:
-                    status_badge = '<span class="badge-err">🔴 PHÁT HIỆN LỖI</span>' if lang == "vi" else '<span class="badge-err">🔴 DEFECT DETECTED</span>'
-                elif has_w:
-                    status_badge = '<span class="badge-warn">🟡 CẢNH BÁO KIỂM TRA</span>' if lang == "vi" else '<span class="badge-warn">🟡 AUDIT WARNING</span>'
-                else:
-                    status_badge = '<span class="badge-ok">🟢 ĐẠT CHUẨN</span>' if lang == "vi" else '<span class="badge-ok">🟢 PASS SPEC</span>'
-
-                st.markdown(f"""
-                <div style="background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <div>
-                            <strong style="color: #f8fafc; font-size: 0.95rem;">{target_obj.id}</strong>
-                            <span style="color: #00e5ff; font-size: 0.8rem; margin-left: 6px; font-family: 'JetBrains Mono', monospace;">[{target_obj.category}]</span>
-                        </div>
-                        {status_badge}
+        with st.container(height=840, border=True):
+            inspector_title = "🎯 BẢNG SOI ĐỐI TƯỢNG & KÍNH LÚP" if lang == "vi" else "🎯 NUCLEUS INSPECTOR & LOUPE"
+            st.markdown(f"""
+            <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; border-top: 3px solid #00e5ff;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 800; color: #00e5ff; letter-spacing: 0.05em;">
+                        {inspector_title}
                     </div>
+                    <span style="font-size: 0.7rem; color: #00e5ff; font-family: 'JetBrains Mono', monospace; background: rgba(0,229,255,0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.3);">SIDEBAR SCROLL</span>
                 </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
 
-                # Defect Loupe Mini Crop Preview (Kính lúp điểm ảnh trong inspector)
-                if loaded_img is not None and target_obj.box2d:
-                    bx = target_obj.box2d
-                    crop_x1 = max(0, int(bx.x1) - 15)
-                    crop_y1 = max(0, int(bx.y1) - 15)
-                    crop_x2 = min(loaded_img.width, int(bx.x2) + 15)
-                    crop_y2 = min(loaded_img.height, int(bx.y2) + 15)
-                    if (crop_x2 > crop_x1) and (crop_y2 > crop_y1):
-                        cropped_patch = loaded_img.crop((crop_x1, crop_y1, crop_x2, crop_y2))
-                        loupe_crop_title = "🔎 Kính Lúp Điểm Ảnh Cận Cảnh" if lang == "vi" else "🔎 High-Res Pixel Loupe"
-                        with st.expander(loupe_crop_title, expanded=True):
-                            caption_crop = (
-                                f"Vùng ảnh thực tế: [{crop_x1}, {crop_y1}, {crop_x2}, {crop_y2}] ({cropped_patch.width}×{cropped_patch.height}px)"
-                                if lang == "vi"
-                                else f"Crop region: [{crop_x1}, {crop_y1}, {crop_x2}, {crop_y2}] ({cropped_patch.width}×{cropped_patch.height}px)"
-                            )
-                            st.image(
-                                cropped_patch,
-                                caption=caption_crop,
-                                use_container_width=True,
-                            )
+            if selected_frame:
+                obj_lookup = {o.id: o for o in selected_frame.objects}
+                cur_frame_errs = frame_error_map.get(selected_frame_name, [])
 
-                # Geometry Telemetry
-                if target_obj.box2d:
-                    bx = target_obj.box2d
-                    geo_title = "📐 Tọa Độ & Hình Học Không Gian" if lang == "vi" else "📐 Spatial Geometry"
+                # Filter Mode for Inspector
+                f_col1, f_col2 = st.columns([4, 6])
+                with f_col1:
+                    filter_opts = (
+                        ["Tất cả", "🚨 Chỉ lỗi vi phạm", "📉 Chỉ Polygon"]
+                        if lang == "vi"
+                        else ["All", "🚨 Defects Only", "📉 Polygons Only"]
+                    )
+                    inst_filter_mode = st.selectbox(
+                        "Bộ lọc:" if lang == "vi" else "Filter:",
+                        options=filter_opts,
+                        index=0,
+                        key="scale_inspector_filter_mode",
+                    )
+
+                filtered_objs = selected_frame.objects
+                if "lỗi" in inst_filter_mode.lower() or "defect" in inst_filter_mode.lower():
+                    defect_ids = set()
+                    for e in cur_frame_errs:
+                        for s in e.object_id.split("&"):
+                            defect_ids.add(s.strip())
+                    filtered_objs = [o for o in selected_frame.objects if o.id in defect_ids]
+                elif "polygon" in inst_filter_mode.lower():
+                    filtered_objs = [o for o in selected_frame.objects if o.poly2d is not None]
+
+                # Object Selector
+                all_inst_str = "🔍 TẤT CẢ VẬT THỂ" if lang == "vi" else "🔍 ALL INSTANCES"
+                obj_choices = [all_inst_str] + [f"{o.id} ({o.category})" for o in filtered_objs]
+                with f_col2:
+                    sel_obj_str = st.selectbox(
+                        "Chọn đối tượng soi:" if lang == "vi" else "Select Instance:",
+                        options=obj_choices,
+                        index=0,
+                        key="scale_inspector_obj_select",
+                        help="Chọn một đối tượng để kiểm tra chi tiết tọa độ, hình học và thuộc tính" if lang == "vi" else "Inspect detailed coordinates, geometry, and attributes",
+                    )
+
+                chosen_id = sel_obj_str.split()[0] if not sel_obj_str.startswith("🔍") else None
+                st.session_state["scale_focused_obj_id"] = chosen_id
+
+                # Case 1: Specific Object Chosen
+                if chosen_id and chosen_id in obj_lookup:
+                    target_obj = obj_lookup[chosen_id]
+                    obj_errs = [e for e in cur_frame_errs if chosen_id in [x.strip() for x in e.object_id.split("&")]]
+                    has_e = any(e.is_error() for e in obj_errs)
+                    has_w = any(e.is_warning() for e in obj_errs)
+
+                    if has_e:
+                        status_badge = '<span class="badge-err">🔴 PHÁT HIỆN LỖI</span>' if lang == "vi" else '<span class="badge-err">🔴 DEFECT DETECTED</span>'
+                    elif has_w:
+                        status_badge = '<span class="badge-warn">🟡 CẢNH BÁO KIỂM TRA</span>' if lang == "vi" else '<span class="badge-warn">🟡 AUDIT WARNING</span>'
+                    else:
+                        status_badge = '<span class="badge-ok">🟢 ĐẠT CHUẨN</span>' if lang == "vi" else '<span class="badge-ok">🟢 PASS SPEC</span>'
+
                     st.markdown(f"""
-                    <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
-                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">{geo_title}</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
-                            <div>x1, y1: <strong style="color: #f1f5f9;">{bx.x1:.1f}, {bx.y1:.1f}</strong></div>
-                            <div>x2, y2: <strong style="color: #f1f5f9;">{bx.x2:.1f}, {bx.y2:.1f}</strong></div>
-                            <div>Dimension: <strong style="color: #f1f5f9;">{bx.width:.1f}×{bx.height:.1f}</strong></div>
-                            <div>Aspect W/H: <strong style="color: #00e5ff;">{bx.aspect_ratio:.2f}</strong></div>
-                            <div>Area: <strong style="color: #f1f5f9;">{bx.area:.0f} px²</strong></div>
+                    <div style="background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div>
+                                <strong style="color: #f8fafc; font-size: 0.95rem;">{target_obj.id}</strong>
+                                <span style="color: #00e5ff; font-size: 0.8rem; margin-left: 6px; font-family: 'JetBrains Mono', monospace;">[{target_obj.category}]</span>
+                            </div>
+                            {status_badge}
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                # SAM2 / AI Contour Auto-Predictor
-                if loaded_img is not None and target_obj.box2d:
-                    ai_c1, ai_c2 = st.columns([6, 4])
-                    with ai_c1:
-                        btn_sam_lbl = "🪄 Sinh Đa Giác Tự Động (SAM2)" if lang == "vi" else "🪄 Generate SAM2 Contour"
-                        help_sam = "Tự động dò tìm đường viền vật thể thực tế trong ảnh để so sánh mặt nạ" if lang == "vi" else "Auto-extract salient contour boundary to compare mask"
-                        if st.button(btn_sam_lbl, use_container_width=True, help=help_sam):
-                            predicted_pts = _predict_salient_contour(loaded_img, target_obj.box2d)
-                            if predicted_pts:
-                                st.session_state["scale_ai_predicted_poly"] = predicted_pts
-                                toast_sam = f"✅ Đã tạo mặt nạ gợi ý ({len(predicted_pts)} đỉnh) cho {target_obj.id}" if lang == "vi" else f"✅ Generated SAM2 contour ({len(predicted_pts)} vertices) for {target_obj.id}"
-                                st.toast(toast_sam, icon="🪄")
-                                st.rerun()
-                            else:
-                                warn_sam = "Không thể trích xuất đường viền từ vùng ảnh này." if lang == "vi" else "Could not extract contour from this region."
-                                st.warning(warn_sam)
-                    with ai_c2:
-                        if st.session_state.get("scale_ai_predicted_poly"):
-                            btn_clear_sam = "❌ Xóa gợi ý" if lang == "vi" else "❌ Clear Suggestion"
-                            if st.button(btn_clear_sam, use_container_width=True):
-                                st.session_state["scale_ai_predicted_poly"] = None
-                                st.rerun()
+                    # Defect Loupe Mini Crop Preview (Kính lúp điểm ảnh trong inspector)
+                    if loaded_img is not None and target_obj.box2d:
+                        bx = target_obj.box2d
+                        crop_x1 = max(0, int(bx.x1) - 15)
+                        crop_y1 = max(0, int(bx.y1) - 15)
+                        crop_x2 = min(loaded_img.width, int(bx.x2) + 15)
+                        crop_y2 = min(loaded_img.height, int(bx.y2) + 15)
+                        if (crop_x2 > crop_x1) and (crop_y2 > crop_y1):
+                            cropped_patch = loaded_img.crop((crop_x1, crop_y1, crop_x2, crop_y2))
+                            loupe_crop_title = "🔎 Kính Lúp Điểm Ảnh Cận Cảnh" if lang == "vi" else "🔎 High-Res Pixel Loupe"
+                            with st.expander(loupe_crop_title, expanded=True):
+                                caption_crop = (
+                                    f"Vùng ảnh thực tế: [{crop_x1}, {crop_y1}, {crop_x2}, {crop_y2}] ({cropped_patch.width}×{cropped_patch.height}px)"
+                                    if lang == "vi"
+                                    else f"Crop region: [{crop_x1}, {crop_y1}, {crop_x2}, {crop_y2}] ({cropped_patch.width}×{cropped_patch.height}px)"
+                                )
+                                st.image(
+                                    cropped_patch,
+                                    caption=caption_crop,
+                                    use_container_width=True,
+                                )
 
-                # Attributes Telemetry
-                attrs = target_obj.attributes or {}
-                attr_header = "🏷️ Thuộc Tính Đối Tượng" if lang == "vi" else "🏷️ Attributes Metadata"
-                missing_str = "THIẾU" if lang == "vi" else "MISSING"
-                st.markdown(f"""
-                <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
-                    <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">{attr_header}</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
-                        <div>occluded: <strong style="color: {'#fbbf24' if attrs.get('occluded') else '#94a3b8'};">{attrs.get('occluded', missing_str)}</strong></div>
-                        <div>truncated: <strong style="color: {'#fbbf24' if attrs.get('truncated') else '#94a3b8'};">{attrs.get('truncated', missing_str)}</strong></div>
-                        <div>lightColor: <strong style="color: #00e5ff;">{attrs.get('trafficLightColor', 'none')}</strong></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                # Active Violations for this Object
-                if obj_errs:
-                    vio_title = "🚨 CÁC VI PHẠM ĐANG CÓ:" if lang == "vi" else "🚨 ACTIVE VIOLATIONS:"
-                    st.markdown(f"<div style='font-size: 0.75rem; color: #f43f5e; font-weight: 700; margin: 8px 0 4px 0;'>{vio_title}</div>", unsafe_allow_html=True)
-                    for e in obj_errs:
-                        default_rule_sugg = "Kiểm tra theo quy chuẩn BDD100K." if lang == "vi" else "Check BDD100K specification."
-                        sugg = RULE_SUGGESTIONS.get(e.rule_id, default_rule_sugg)
-                        lbl_fix_tag = "Cách sửa:" if lang == "vi" else "Fix:"
+                    # Geometry Telemetry
+                    if target_obj.box2d:
+                        bx = target_obj.box2d
+                        geo_title = "📐 Tọa Độ & Hình Học Không Gian" if lang == "vi" else "📐 Spatial Geometry"
                         st.markdown(f"""
-                        <div style="background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.3); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 0.78rem;">
-                            <div style="font-weight: 700; color: #f87171; font-family: 'JetBrains Mono', monospace;">{e.rule_id} · {e.severity}</div>
-                            <div style="color: #e2e8f0; margin-top: 2px;">{e.message}</div>
-                            <div style="color: #00e5ff; margin-top: 4px; font-size: 0.72rem;">💡 <strong>{lbl_fix_tag}</strong> {sugg}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    success_obj_msg = "✅ Đối tượng đạt chuẩn toàn diện 15 bộ quy tắc." if lang == "vi" else "✅ Instance meets all 15 QA validation rules."
-                    st.success(success_obj_msg)
-
-            # Case 2: All Instances Summary
-            else:
-                summary_hdr = "TỔNG HỢP KHUNG HÌNH" if lang == "vi" else "FRAME TELEMETRY SUMMARY"
-                summary_val = f"{len(selected_frame.objects)} Vật thể · {len(cur_frame_errs)} Lỗi phát hiện" if lang == "vi" else f"{len(selected_frame.objects)} Instances · {len(cur_frame_errs)} Defect Events"
-                st.markdown(f"""
-                <div style="background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-                    <div style="font-size: 0.74rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">{summary_hdr}</div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">
-                        {summary_val}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if cur_frame_errs:
-                    frame_v_hdr = "VI PHẠM TRONG KHUNG HÌNH:" if lang == "vi" else "DEFECTS IN THIS FRAME:"
-                    st.markdown(f"<div style='font-size: 0.75rem; color: #f43f5e; font-weight: 700; margin: 8px 0 4px 0;'>{frame_v_hdr}</div>", unsafe_allow_html=True)
-                    for e in cur_frame_errs:
-                        is_e = e.is_error()
-                        badge_c = "#f43f5e" if is_e else "#fbbf24"
-                        st.markdown(f"""
-                        <div style="background: #0f1624; border-left: 3px solid {badge_c}; border-radius: 0 6px 6px 0; padding: 6px 10px; margin-bottom: 6px; font-size: 0.78rem;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <strong style="color: #f8fafc;">{e.object_id}</strong>
-                                <span style="font-family: 'JetBrains Mono', monospace; color: {badge_c}; font-size: 0.72rem;">{e.rule_id}</span>
+                        <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">{geo_title}</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
+                                <div>x1, y1: <strong style="color: #f1f5f9;">{bx.x1:.1f}, {bx.y1:.1f}</strong></div>
+                                <div>x2, y2: <strong style="color: #f1f5f9;">{bx.x2:.1f}, {bx.y2:.1f}</strong></div>
+                                <div>Dimension: <strong style="color: #f1f5f9;">{bx.width:.1f}×{bx.height:.1f}</strong></div>
+                                <div>Aspect W/H: <strong style="color: #00e5ff;">{bx.aspect_ratio:.2f}</strong></div>
+                                <div>Area: <strong style="color: #f1f5f9;">{bx.area:.0f} px²</strong></div>
                             </div>
-                            <div style="color: #94a3b8; font-size: 0.74rem; margin-top: 2px;">{e.message}</div>
                         </div>
                         """, unsafe_allow_html=True)
+
+                    # SAM2 / AI Contour Auto-Predictor
+                    if loaded_img is not None and target_obj.box2d:
+                        ai_c1, ai_c2 = st.columns([6, 4])
+                        with ai_c1:
+                            btn_sam_lbl = "🪄 Sinh Đa Giác Tự Động (SAM2)" if lang == "vi" else "🪄 Generate SAM2 Contour"
+                            help_sam = "Tự động dò tìm đường viền vật thể thực tế trong ảnh để so sánh mặt nạ" if lang == "vi" else "Auto-extract salient contour boundary to compare mask"
+                            if st.button(btn_sam_lbl, use_container_width=True, help=help_sam):
+                                predicted_pts = _predict_salient_contour(loaded_img, target_obj.box2d)
+                                if predicted_pts:
+                                    st.session_state["scale_ai_predicted_poly"] = predicted_pts
+                                    toast_sam = f"✅ Đã tạo mặt nạ gợi ý ({len(predicted_pts)} đỉnh) cho {target_obj.id}" if lang == "vi" else f"✅ Generated SAM2 contour ({len(predicted_pts)} vertices) for {target_obj.id}"
+                                    st.toast(toast_sam, icon="🪄")
+                                    st.rerun()
+                                else:
+                                    warn_sam = "Không thể trích xuất đường viền từ vùng ảnh này." if lang == "vi" else "Could not extract contour from this region."
+                                    st.warning(warn_sam)
+                        with ai_c2:
+                            if st.session_state.get("scale_ai_predicted_poly"):
+                                btn_clear_sam = "❌ Xóa gợi ý" if lang == "vi" else "❌ Clear Suggestion"
+                                if st.button(btn_clear_sam, use_container_width=True):
+                                    st.session_state["scale_ai_predicted_poly"] = None
+                                    st.rerun()
+
+                    # Attributes Telemetry
+                    attrs = target_obj.attributes or {}
+                    attr_header = "🏷️ Thuộc Tính Đối Tượng" if lang == "vi" else "🏷️ Attributes Metadata"
+                    missing_str = "THIẾU" if lang == "vi" else "MISSING"
+                    st.markdown(f"""
+                    <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">{attr_header}</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
+                            <div>occluded: <strong style="color: {'#fbbf24' if attrs.get('occluded') else '#94a3b8'};">{attrs.get('occluded', missing_str)}</strong></div>
+                            <div>truncated: <strong style="color: {'#fbbf24' if attrs.get('truncated') else '#94a3b8'};">{attrs.get('truncated', missing_str)}</strong></div>
+                            <div>lightColor: <strong style="color: #00e5ff;">{attrs.get('trafficLightColor', 'none')}</strong></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Active Violations for this Object
+                    if obj_errs:
+                        vio_title = "🚨 CÁC VI PHẠM ĐANG CÓ:" if lang == "vi" else "🚨 ACTIVE VIOLATIONS:"
+                        st.markdown(f"<div style='font-size: 0.75rem; color: #f43f5e; font-weight: 700; margin: 8px 0 4px 0;'>{vio_title}</div>", unsafe_allow_html=True)
+                        for e in obj_errs:
+                            default_rule_sugg = "Kiểm tra theo quy chuẩn BDD100K." if lang == "vi" else "Check BDD100K specification."
+                            sugg = RULE_SUGGESTIONS.get(e.rule_id, default_rule_sugg)
+                            lbl_fix_tag = "Cách sửa:" if lang == "vi" else "Fix:"
+                            st.markdown(f"""
+                            <div style="background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.3); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 0.78rem;">
+                                <div style="font-weight: 700; color: #f87171; font-family: 'JetBrains Mono', monospace;">{e.rule_id} · {e.severity}</div>
+                                <div style="color: #e2e8f0; margin-top: 2px;">{e.message}</div>
+                                <div style="color: #00e5ff; margin-top: 4px; font-size: 0.72rem;">💡 <strong>{lbl_fix_tag}</strong> {sugg}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        success_obj_msg = "✅ Đối tượng đạt chuẩn toàn diện 15 bộ quy tắc." if lang == "vi" else "✅ Instance meets all 15 QA validation rules."
+                        st.success(success_obj_msg)
+
+                # Case 2: All Instances Summary
                 else:
-                    st.success("🎉 Khung hình sạch 100%, không phát hiện lỗi nào." if lang == "vi" else "🎉 Clean frame. Zero defects detected.")
+                    summary_hdr = "TỔNG HỢP KHUNG HÌNH" if lang == "vi" else "FRAME TELEMETRY SUMMARY"
+                    summary_val = f"{len(selected_frame.objects)} Vật thể · {len(cur_frame_errs)} Lỗi phát hiện" if lang == "vi" else f"{len(selected_frame.objects)} Instances · {len(cur_frame_errs)} Defect Events"
+                    st.markdown(f"""
+                    <div style="background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <div style="font-size: 0.74rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">{summary_hdr}</div>
+                        <div style="font-size: 1.1rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">
+                            {summary_val}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            # Bộ công cụ sửa tay nhãn trực tiếp dành cho Annotator & Reviewer
-            img_w = loaded_img.width if loaded_img is not None else 1920
-            img_h = loaded_img.height if loaded_img is not None else 1080
-            cur_target = obj_lookup.get(chosen_id) if chosen_id else None
-            render_manual_editor_panel(
-                target_obj=cur_target,
-                selected_frame=selected_frame,
-                frames=frames,
-                canvas_w=img_w,
-                canvas_h=img_h,
-                lang=lang,
-                loaded_img=loaded_img,
-            )
+                    if cur_frame_errs:
+                        frame_v_hdr = "VI PHẠM TRONG KHUNG HÌNH:" if lang == "vi" else "DEFECTS IN THIS FRAME:"
+                        st.markdown(f"<div style='font-size: 0.75rem; color: #f43f5e; font-weight: 700; margin: 8px 0 4px 0;'>{frame_v_hdr}</div>", unsafe_allow_html=True)
+                        for e in cur_frame_errs:
+                            is_e = e.is_error()
+                            badge_c = "#f43f5e" if is_e else "#fbbf24"
+                            st.markdown(f"""
+                            <div style="background: #0f1624; border-left: 3px solid {badge_c}; border-radius: 0 6px 6px 0; padding: 6px 10px; margin-bottom: 6px; font-size: 0.78rem;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong style="color: #f8fafc;">{e.object_id}</strong>
+                                    <span style="font-family: 'JetBrains Mono', monospace; color: {badge_c}; font-size: 0.72rem;">{e.rule_id}</span>
+                                </div>
+                                <div style="color: #94a3b8; font-size: 0.74rem; margin-top: 2px;">{e.message}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.success("🎉 Khung hình sạch 100%, không phát hiện lỗi nào." if lang == "vi" else "🎉 Clean frame. Zero defects detected.")
 
-            # Layer Visibility Toggles at the bottom of Inspector
-            st.markdown("---")
-            layers_title = "🎛️ Bật Tắt Lớp Hiển Thị" if lang == "vi" else "🎛️ Layer Visibility Controls"
-            st.markdown(f"<div style='font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>{layers_title}</div>", unsafe_allow_html=True)
-            t_col1, t_col2 = st.columns(2)
-            with t_col1:
-                st.session_state["scale_show_err"] = st.checkbox("🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"), value=True)
-                st.session_state["scale_show_warn"] = st.checkbox("🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"), value=True)
-                st.session_state["scale_show_valid"] = st.checkbox("🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"), value=True)
-            with t_col2:
-                st.session_state["scale_show_labels"] = st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), value=True)
-                st.session_state["scale_show_grid"] = st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), value=False)
+                # Bộ công cụ sửa tay nhãn trực tiếp dành cho Annotator & Reviewer
+                img_w = loaded_img.width if loaded_img is not None else 1920
+                img_h = loaded_img.height if loaded_img is not None else 1080
+                cur_target = obj_lookup.get(chosen_id) if chosen_id else None
+                render_manual_editor_panel(
+                    target_obj=cur_target,
+                    selected_frame=selected_frame,
+                    frames=frames,
+                    canvas_w=img_w,
+                    canvas_h=img_h,
+                    lang=lang,
+                    loaded_img=loaded_img,
+                )
+
+                # Layer Visibility Toggles at the bottom of Inspector
+                st.markdown("---")
+                layers_title = "🎛️ Bật Tắt Lớp Hiển Thị" if lang == "vi" else "🎛️ Layer Visibility Controls"
+                st.markdown(f"<div style='font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>{layers_title}</div>", unsafe_allow_html=True)
+                t_col1, t_col2 = st.columns(2)
+                with t_col1:
+                    st.session_state["scale_show_err"] = st.checkbox("🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"), value=True)
+                    st.session_state["scale_show_warn"] = st.checkbox("🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"), value=True)
+                    st.session_state["scale_show_valid"] = st.checkbox("🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"), value=True)
+                with t_col2:
+                    st.session_state["scale_show_labels"] = st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), value=True)
+                    st.session_state["scale_show_grid"] = st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), value=False)

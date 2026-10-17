@@ -14,7 +14,7 @@ import time
 from typing import List, Dict, Any, Optional
 import streamlit as st
 
-from qc.models import FrameData, LabeledObject, BBox2D, Polygon2D, QCReport
+from qc.models import FrameData, LabeledObject, BBox2D, Polygon2D, QCReport, QCError
 from qc.engine import run_qc
 from qc.reporter import export_coco_json, export_yolo_zip_bytes
 
