@@ -76,58 +76,6 @@ def main():
     from ui.i18n import t, get_current_lang, set_current_lang
     curr_lang = get_current_lang()
 
-    # 5.5. Thanh tiện ích trên cùng: Ngôn ngữ & Chế độ Sáng / Tối (Top Control Bar)
-    top_c1, top_c2, top_c3 = st.columns([5.2, 2.4, 2.4])
-    with top_c1:
-        st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 8px; padding-top: 5px;">
-            <span style="font-size: 1.15rem;">🛡️</span>
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--val-cyan); letter-spacing: 0.04em;">
-                {'BDD100K HỆ THỐNG KIỂM ĐỊNH // N2-04A' if curr_lang == 'vi' else 'BDD100K QC AUDIT PLATFORM // N2-04A'}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with top_c2:
-        def _on_top_lang_change():
-            chosen = st.session_state.get("top_bar_lang_radio", "")
-            new_l = "vi" if "Tiếng Việt" in chosen else "en"
-            set_current_lang(new_l)
-            st.session_state["global_lang_selector"] = "Tiếng Việt 🇻🇳" if new_l == "vi" else "English 🇺🇸"
-
-        if "top_bar_lang_radio" not in st.session_state:
-            st.session_state["top_bar_lang_radio"] = "Tiếng Việt 🇻🇳" if curr_lang == "vi" else "English 🇺🇸"
-
-        st.radio(
-            "Language",
-            options=["Tiếng Việt 🇻🇳", "English 🇺🇸"],
-            key="top_bar_lang_radio",
-            on_change=_on_top_lang_change,
-            horizontal=True,
-            label_visibility="collapsed",
-        )
-
-    with top_c3:
-        def _on_top_theme_change():
-            chosen = st.session_state.get("top_bar_theme_radio", "")
-            new_mode = "dark" if ("Tối" in chosen or "Dark" in chosen) else "light"
-            st.session_state["global_theme_mode"] = new_mode
-            st.session_state["sidebar_theme_radio"] = "🌙 Tối (Dark)" if new_mode == "dark" else "☀️ Sáng (Light)"
-
-        cur_mode = st.session_state.get("global_theme_mode", "dark")
-        theme_opts = ["🌙 Nền Tối", "☀️ Nền Sáng"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"]
-        if "top_bar_theme_radio" not in st.session_state:
-            st.session_state["top_bar_theme_radio"] = "🌙 Nền Tối" if cur_mode == "dark" else "☀️ Nền Sáng"
-
-        st.radio(
-            "Theme",
-            options=theme_opts,
-            key="top_bar_theme_radio",
-            on_change=_on_top_theme_change,
-            horizontal=True,
-            label_visibility="collapsed",
-        )
-
     # 6. Render Header chính
     render_header(
         total_rules_active=total_rules_active,
