@@ -58,9 +58,9 @@ def render_welcome_screen(
     if not all_sources:
         title_txt = "👈 " + ("Hệ thống sẵn sàng đón nhận dữ liệu kiểm định" if lang == "vi" else "System Ready for Dataset Ingestion")
         desc_txt = (
-            "Vui lòng tải lên các tệp nhãn (`.json`, `.txt` YOLO) hoặc chọn dữ liệu mẫu ở bảng điều khiển bên trái để bắt đầu kiểm tra tự động qua 15 bộ luật và đối soát AI."
+            "Vui lòng tải lên các tệp tại bảng điều khiển bên trái để bắt đầu kiểm tra tự động qua 15 bộ luật và đối soát AI."
             if lang == "vi"
-            else "Please upload label files (.json, .txt YOLO) or choose sample dataset on the left sidebar to begin automated quality inspection across 15 rules."
+            else "Please upload your files on the left sidebar to begin automated quality inspection across 15 rules."
         )
     else:
         title_txt = t("welcome_title")

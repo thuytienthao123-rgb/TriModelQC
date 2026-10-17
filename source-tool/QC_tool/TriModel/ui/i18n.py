@@ -78,12 +78,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "⚡ Use Sample Dataset",
     },
     "opt_upload": {
-        "vi": "📂 Tải lên nhiều tệp (JSON / TXT / XML)",
-        "en": "📂 Upload Files (JSON / TXT / XML)",
+        "vi": "📂 Tải file",
+        "en": "📂 Upload Files",
     },
     "opt_folder": {
-        "vi": "🗂️ Quét thư mục trên máy",
-        "en": "🗂️ Scan Local Directory",
+        "vi": "🗂️ Tải thư mục",
+        "en": "🗂️ Upload Folder",
     },
     "sample_select": {
         "vi": "Chọn tệp dữ liệu mẫu:",

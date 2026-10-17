@@ -5,7 +5,6 @@ from PIL import Image
 import streamlit as st
 
 from qc.models import FrameData
-from qc.parser import load_bdd100k
 from qc.rules.bbox_rules import ALL_BBOX_RULES
 from qc.rules.polygon_rules import ALL_POLYGON_RULES
 from qc.rules.attribute_rules import ALL_ATTRIBUTE_RULES
@@ -56,7 +55,6 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
 
     source_options = [
         t("opt_upload"),
-        t("opt_sample"),
         t("opt_folder"),
     ]
     data_source = st.sidebar.radio(
@@ -199,46 +197,7 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
                 msg_fail = f"⚠️ Không đọc được: {', '.join(fail_names)}" if curr_lang == "vi" else f"⚠️ Failed: {', '.join(fail_names)}"
                 st.sidebar.warning(msg_fail)
 
-    elif data_source == source_options[1]:  # 2. Sample (Chỉ nạp khi người dùng chủ động yêu cầu)
-        sample_choice = st.sidebar.selectbox(
-            t("sample_select"),
-            options=[
-                t("sample_err"),
-                t("sample_val"),
-            ],
-            index=0,
-        )
-        sel_file = "sample_valid.json" if "sample_valid" in sample_choice else "sample_with_errors.json"
-        base_dir = Path(__file__).parent.parent
-        sample_file_path = base_dir / "data_sample" / sel_file
-
-        load_sample_btn = st.sidebar.button(
-            "⚡ " + ("Nạp dữ liệu mẫu này" if curr_lang == "vi" else "Load this sample"),
-            use_container_width=True,
-            key="btn_trigger_sample"
-        )
-        if load_sample_btn:
-            st.session_state["active_sample_file"] = sel_file
-            st.session_state["qc_report"] = None
-            st.session_state["qc_frames"] = None
-            st.session_state["qc_sources"] = None
-            st.session_state["qc_ai_missed_cache"] = {}
-
-        active_sample = st.session_state.get("active_sample_file", None)
-        if active_sample and active_sample == sel_file and sample_file_path.exists():
-            try:
-                frames_sample = load_bdd100k(sample_file_path)
-                all_sources.append((sel_file, frames_sample))
-                file_display_name = sample_file_path.stem
-                msg_sample = f"✅ Đã nạp {sel_file} ({len(frames_sample)} khung hình)" if curr_lang == "vi" else f"✅ {sel_file} ({len(frames_sample)} frames)"
-                st.sidebar.success(msg_sample)
-            except Exception as ex:
-                err_sample = f"Lỗi đọc dữ liệu mẫu: {ex}" if curr_lang == "vi" else f"Error reading sample: {ex}"
-                st.sidebar.error(err_sample)
-        elif not active_sample:
-            st.sidebar.info("👉 Bấm nút 'Nạp dữ liệu mẫu này' ở trên để tiến hành kiểm thử." if curr_lang == "vi" else "👉 Click 'Load this sample' above to test.")
-
-    else:  # Folder scan
+    else:  # 2. Tải thư mục
         st.sidebar.caption(t("folder_label"))
         folder_input = st.sidebar.text_input(
             t("folder_label"),
