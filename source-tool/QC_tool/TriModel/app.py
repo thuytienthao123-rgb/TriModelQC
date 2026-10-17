@@ -89,32 +89,44 @@ def main():
         """, unsafe_allow_html=True)
 
     with top_c2:
-        top_lang = st.radio(
+        def _on_top_lang_change():
+            chosen = st.session_state.get("top_bar_lang_radio", "")
+            new_l = "vi" if "Tiếng Việt" in chosen else "en"
+            set_current_lang(new_l)
+            st.session_state["global_lang_selector"] = "Tiếng Việt 🇻🇳" if new_l == "vi" else "English 🇺🇸"
+
+        if "top_bar_lang_radio" not in st.session_state:
+            st.session_state["top_bar_lang_radio"] = "Tiếng Việt 🇻🇳" if curr_lang == "vi" else "English 🇺🇸"
+
+        st.radio(
             "Language",
             options=["Tiếng Việt 🇻🇳", "English 🇺🇸"],
-            index=0 if curr_lang == "vi" else 1,
-            horizontal=True,
             key="top_bar_lang_radio",
+            on_change=_on_top_lang_change,
+            horizontal=True,
             label_visibility="collapsed",
         )
-        new_lang = "vi" if "Tiếng Việt" in top_lang else "en"
-        if new_lang != curr_lang:
-            set_current_lang(new_lang)
-            st.rerun()
 
     with top_c3:
-        top_theme = st.radio(
+        def _on_top_theme_change():
+            chosen = st.session_state.get("top_bar_theme_radio", "")
+            new_mode = "dark" if ("Tối" in chosen or "Dark" in chosen) else "light"
+            st.session_state["global_theme_mode"] = new_mode
+            st.session_state["sidebar_theme_radio"] = "🌙 Tối (Dark)" if new_mode == "dark" else "☀️ Sáng (Light)"
+
+        cur_mode = st.session_state.get("global_theme_mode", "dark")
+        theme_opts = ["🌙 Nền Tối", "☀️ Nền Sáng"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"]
+        if "top_bar_theme_radio" not in st.session_state:
+            st.session_state["top_bar_theme_radio"] = "🌙 Nền Tối" if cur_mode == "dark" else "☀️ Nền Sáng"
+
+        st.radio(
             "Theme",
-            options=["🌙 Nền Tối", "☀️ Nền Sáng"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"],
-            index=0 if is_dark else 1,
-            horizontal=True,
+            options=theme_opts,
             key="top_bar_theme_radio",
+            on_change=_on_top_theme_change,
+            horizontal=True,
             label_visibility="collapsed",
         )
-        new_is_dark = ("Tối" in top_theme or "Dark" in top_theme)
-        if new_is_dark != is_dark:
-            st.session_state["global_theme_mode"] = "dark" if new_is_dark else "light"
-            st.rerun()
 
     # 6. Render Header chính
     render_header(

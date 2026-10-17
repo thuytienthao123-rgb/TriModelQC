@@ -6,147 +6,81 @@ import streamlit.components.v1 as components
 def apply_custom_css(is_dark: bool = True):
     """
     Áp dụng hệ thống Design System chuẩn Scale Nucleus Pro với khả năng
-    tự động thích ứng 100% giữa Sáng (Light) và Tối (Dark) theo cài đặt của Streamlit.
+    tự động thích ứng 100% giữa Sáng (Light) và Tối (Dark).
     """
-    st.markdown("""
+    bg_main = "#080c14" if is_dark else "#f8fafc"
+    bg_sidebar = "#0b101b" if is_dark else "#ffffff"
+    bg_header = "#0f1626" if is_dark else "#ffffff"
+    bg_card = "#111827" if is_dark else "#ffffff"
+    bg_card_sub = "#141d30" if is_dark else "#f1f5f9"
+    border_c = "#1e293b" if is_dark else "#cbd5e1"
+    border_header = "#00e5ff" if is_dark else "#0284c7"
+    text_main = "#f8fafc" if is_dark else "#0f172a"
+    text_sub = "#94a3b8" if is_dark else "#334155"
+    text_muted = "#cbd5e1" if is_dark else "#475569"
+    val_cyan = "#00e5ff" if is_dark else "#0284c7"
+    val_indigo = "#818cf8" if is_dark else "#4f46e5"
+    val_rose = "#f43f5e" if is_dark else "#e11d48"
+    val_amber = "#fbbf24" if is_dark else "#d97706"
+    val_emerald = "#10b981" if is_dark else "#059669"
+    box_shadow = "0 8px 30px rgba(0, 0, 0, 0.5)" if is_dark else "0 4px 20px rgba(0, 0, 0, 0.08)"
+    badge_err_bg = "rgba(244, 63, 94, 0.15)" if is_dark else "#fee2e2"
+    badge_err_txt = "#fca5a5" if is_dark else "#b91c1c"
+    badge_warn_bg = "rgba(245, 158, 11, 0.15)" if is_dark else "#fef3c7"
+    badge_warn_txt = "#fde68a" if is_dark else "#b45309"
+    badge_ok_bg = "rgba(16, 185, 129, 0.15)" if is_dark else "#d1fae5"
+    badge_ok_txt = "#a7f3d0" if is_dark else "#047857"
+    tab_active_bg = "rgba(0, 229, 255, 0.08)" if is_dark else "rgba(2, 132, 199, 0.08)"
+    glow_cyan = "0 0 20px rgba(0, 229, 255, 0.25)" if is_dark else "0 0 15px rgba(2, 132, 199, 0.18)"
+
+    css_content = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
     /* =========================================================================
        DYNAMIC ACTIVE THEME VARIABLES
        ========================================================================= */
-    :root, body, .stApp {
-        --bg-main: """ + ("#080c14" if is_dark else "#f8fafc") + """;
-        --bg-sidebar: """ + ("#0b101b" if is_dark else "#ffffff") + """;
-        --bg-header: """ + ("#0f1626" if is_dark else "#ffffff") + """;
-        --bg-card: """ + ("#111827" if is_dark else "#ffffff") + """;
-        --bg-card-sub: """ + ("#141d30" if is_dark else "#f1f5f9") + """;
-        --border-c: """ + ("#1e293b" if is_dark else "#e2e8f0") + """;
-        --border-header: """ + ("#00e5ff" if is_dark else "#0284c7") + """;
-        --text-main: """ + ("#f8fafc" if is_dark else "#0f172a") + """;
-        --text-sub: """ + ("#94a3b8" if is_dark else "#475569") + """;
-        --text-muted: """ + ("#cbd5e1" if is_dark else "#334155") + """;
-        --val-cyan: """ + ("#00e5ff" if is_dark else "#0284c7") + """;
-        --val-indigo: """ + ("#818cf8" if is_dark else "#4f46e5") + """;
-        --val-rose: """ + ("#f43f5e" if is_dark else "#e11d48") + """;
-        --val-amber: """ + ("#fbbf24" if is_dark else "#d97706") + """;
-        --val-emerald: """ + ("#10b981" if is_dark else "#059669") + """;
-        --box-shadow: """ + ("0 8px 30px rgba(0, 0, 0, 0.5)" if is_dark else "0 6px 20px rgba(0, 0, 0, 0.06)") + """;
-        --badge-err-bg: """ + ("rgba(244, 63, 94, 0.15)" if is_dark else "#fee2e2") + """;
-        --badge-err-txt: """ + ("#fca5a5" if is_dark else "#b91c1c") + """;
-        --badge-warn-bg: """ + ("rgba(245, 158, 11, 0.15)" if is_dark else "#fef3c7") + """;
-        --badge-warn-txt: """ + ("#fde68a" if is_dark else "#b45309") + """;
-        --badge-ok-bg: """ + ("rgba(16, 185, 129, 0.15)" if is_dark else "#d1fae5") + """;
-        --badge-ok-txt: """ + ("#a7f3d0" if is_dark else "#047857") + """;
-        --tab-active-bg: """ + ("rgba(0, 229, 255, 0.08)" if is_dark else "rgba(2, 132, 199, 0.08)") + """;
-        --glow-cyan: """ + ("0 0 20px rgba(0, 229, 255, 0.25)" if is_dark else "0 0 15px rgba(2, 132, 199, 0.18)") + """;
-    }
+    :root, html, body, .stApp, [data-theme], [data-testid="stSidebar"], [data-testid="stSidebarContent"], header[data-testid="stHeader"] {{
+        --bg-main: {bg_main} !important;
+        --bg-sidebar: {bg_sidebar} !important;
+        --bg-header: {bg_header} !important;
+        --bg-card: {bg_card} !important;
+        --bg-card-sub: {bg_card_sub} !important;
+        --border-c: {border_c} !important;
+        --border-header: {border_header} !important;
+        --text-main: {text_main} !important;
+        --text-sub: {text_sub} !important;
+        --text-muted: {text_muted} !important;
+        --val-cyan: {val_cyan} !important;
+        --val-indigo: {val_indigo} !important;
+        --val-rose: {val_rose} !important;
+        --val-amber: {val_amber} !important;
+        --val-emerald: {val_emerald} !important;
+        --box-shadow: {box_shadow} !important;
+        --badge-err-bg: {badge_err_bg} !important;
+        --badge-err-txt: {badge_err_txt} !important;
+        --badge-warn-bg: {badge_warn_bg} !important;
+        --badge-warn-txt: {badge_warn_txt} !important;
+        --badge-ok-bg: {badge_ok_bg} !important;
+        --badge-ok-txt: {badge_ok_txt} !important;
+        --tab-active-bg: {tab_active_bg} !important;
+        --glow-cyan: {glow_cyan} !important;
+    }}
 
-    .stApp {
-        background-color: """ + ("#080c14" if is_dark else "#f8fafc") + """ !important;
-        color: """ + ("#f8fafc" if is_dark else "#0f172a") + """ !important;
-    }
+    .stApp, [data-testid="stAppViewContainer"] {{
+        background-color: {bg_main} !important;
+        color: {text_main} !important;
+    }}
 
-    section[data-testid="stSidebar"] {
-        background-color: """ + ("#0b101b" if is_dark else "#ffffff") + """ !important;
-        border-right: 1px solid """ + ("#1e293b" if is_dark else "#e2e8f0") + """ !important;
-    }
+    section[data-testid="stSidebar"], [data-testid="stSidebar"], [data-testid="stSidebarContent"] {{
+        background-color: {bg_sidebar} !important;
+        border-right: 1px solid {border_c} !important;
+    }}
+    """
+    st.markdown(css_content, unsafe_allow_html=True)
 
-    html.theme-dark,
-    body.theme-dark,
-    .theme-dark .stApp,
-    [data-theme="dark"],
-    .stApp[data-theme="dark"],
-    .theme-dark {
-        --bg-main: #080c14 !important;
-        --bg-sidebar: #0b101b !important;
-        --bg-header: #0f1626 !important;
-        --bg-card: #111827 !important;
-        --bg-card-sub: #141d30 !important;
-        --border-c: #1e293b !important;
-        --border-header: #00e5ff !important;
-        --text-main: #f8fafc !important;
-        --text-sub: #94a3b8 !important;
-        --text-muted: #cbd5e1 !important;
-        --val-cyan: #00e5ff !important;
-        --val-indigo: #818cf8 !important;
-        --val-rose: #f43f5e !important;
-        --val-amber: #fbbf24 !important;
-        --val-emerald: #10b981 !important;
-        --box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
-        --badge-err-bg: rgba(244, 63, 94, 0.15) !important;
-        --badge-err-txt: #fca5a5 !important;
-        --badge-warn-bg: rgba(245, 158, 11, 0.15) !important;
-        --badge-warn-txt: #fde68a !important;
-        --badge-ok-bg: rgba(16, 185, 129, 0.15) !important;
-        --badge-ok-txt: #a7f3d0 !important;
-        --tab-active-bg: rgba(0, 229, 255, 0.08) !important;
-        --glow-cyan: 0 0 20px rgba(0, 229, 255, 0.25) !important;
-    }
-
-    /* =========================================================================
-       CSS VARIABLES: LIGHT THEME (STUDIO LIGHT)
-       ========================================================================= */
-    @media (prefers-color-scheme: light) {
-        :root, body, .stApp {
-            --bg-main: #f8fafc;
-            --bg-sidebar: #ffffff;
-            --bg-header: #ffffff;
-            --bg-card: #ffffff;
-            --bg-card-sub: #f1f5f9;
-            --border-c: #e2e8f0;
-            --border-header: #0284c7;
-            --text-main: #0f172a;
-            --text-sub: #475569;
-            --text-muted: #334155;
-            --val-cyan: #0284c7;
-            --val-indigo: #4f46e5;
-            --val-rose: #e11d48;
-            --val-amber: #d97706;
-            --val-emerald: #059669;
-            --box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-            --badge-err-bg: #fee2e2;
-            --badge-err-txt: #b91c1c;
-            --badge-warn-bg: #fef3c7;
-            --badge-warn-txt: #b45309;
-            --badge-ok-bg: #d1fae5;
-            --badge-ok-txt: #047857;
-            --tab-active-bg: rgba(2, 132, 199, 0.08);
-            --glow-cyan: 0 0 15px rgba(2, 132, 199, 0.18);
-        }
-    }
-
-    html.theme-light,
-    body.theme-light,
-    .theme-light .stApp,
-    [data-theme="light"],
-    .stApp[data-theme="light"],
-    .theme-light {
-        --bg-main: #f8fafc !important;
-        --bg-sidebar: #ffffff !important;
-        --bg-header: #ffffff !important;
-        --bg-card: #ffffff !important;
-        --bg-card-sub: #f1f5f9 !important;
-        --border-c: #e2e8f0 !important;
-        --border-header: #0284c7 !important;
-        --text-main: #0f172a !important;
-        --text-sub: #475569 !important;
-        --text-muted: #334155 !important;
-        --val-cyan: #0284c7 !important;
-        --val-indigo: #4f46e5 !important;
-        --val-rose: #e11d48 !important;
-        --val-amber: #d97706 !important;
-        --val-emerald: #059669 !important;
-        --box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06) !important;
-        --badge-err-bg: #fee2e2 !important;
-        --badge-err-txt: #b91c1c !important;
-        --badge-warn-bg: #fef3c7 !important;
-        --badge-warn-txt: #b45309 !important;
-        --badge-ok-bg: #d1fae5 !important;
-        --badge-ok-txt: #047857 !important;
-        --tab-active-bg: rgba(2, 132, 199, 0.08) !important;
-        --glow-cyan: 0 0 15px rgba(2, 132, 199, 0.18) !important;
-    }
+    st.markdown("""
+    <style>
 
     /* -------------------------------------------------------------------------
        VẤN ĐỀ 1: THU GỌN THANH HEADER TRÊN CÙNG & DỊCH CHUYỂN DEPLOY LÊN GÓC PHẢI
@@ -198,10 +132,11 @@ def apply_custom_css(is_dark: bool = True):
         overflow-y: visible !important;
     }
 
-    /* Đưa iframe ẩn hoàn toàn không chắn sự kiện cuộn chuột */
-    iframe[data-testid="stCustomComponentV1"],
-    div[data-testid="stCustomComponentV1"],
-    div.element-container:has(iframe) {
+    /* Chỉ ẩn iframe 0px của script đồng bộ, không ẩn custom components khác */
+    iframe[height="0"],
+    iframe[width="0"],
+    div.element-container:has(> iframe[height="0"]),
+    div.element-container:has(> div > iframe[height="0"]) {
         position: fixed !important;
         bottom: -200px !important;
         left: -200px !important;
