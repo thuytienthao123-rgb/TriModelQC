@@ -2,3 +2,7 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+
+[theme]
+primaryColor = "#00e5ff"
+font = "sans serif"

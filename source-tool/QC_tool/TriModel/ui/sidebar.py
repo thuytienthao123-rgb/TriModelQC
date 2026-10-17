@@ -46,8 +46,21 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
         set_current_lang(new_lang)
         st.rerun()
 
-    # Mặc định giao diện
-    is_dark = True
+    # Chuyển đổi giao diện Sáng / Tối (Theme Mode)
+    theme_title = "Giao diện:" if curr_lang == "vi" else "Theme:"
+    theme_options = ["🌙 Tối (Dark)", "☀️ Sáng (Light)"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"]
+    saved_theme = st.session_state.get("global_theme_mode", "dark")
+    t_idx = 0 if saved_theme == "dark" else 1
+    selected_theme = st.sidebar.radio(
+        theme_title,
+        options=theme_options,
+        index=t_idx,
+        horizontal=True,
+        key="global_theme_selector",
+        help="Chuyển đổi giữa chế độ nền tối (Dark Mode) và nền sáng (Light Mode)" if curr_lang == "vi" else "Switch between Dark and Light theme mode",
+    )
+    is_dark = "Dark" in selected_theme or "Tối" in selected_theme
+    st.session_state["global_theme_mode"] = "dark" if is_dark else "light"
 
     # 1. Nguồn Dữ Liệu
     st.sidebar.markdown("---")
