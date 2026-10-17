@@ -699,6 +699,51 @@ def apply_custom_css(is_dark: bool = True):
                         app.setAttribute('data-theme', 'dark');
                     }
                 }
+                // 5. Luôn hiển thị nút chuyển Theme nổi (Floating Theme Pill) ở góc trên phải màn hình
+                let floatBtn = pDoc.getElementById('quick-theme-floating-btn');
+                const btnBg = isLight ? '#ffffff' : '#0f172a';
+                const btnColor = isLight ? '#0284c7' : '#00e5ff';
+                const btnBorder = isLight ? 'rgba(2, 132, 199, 0.5)' : 'rgba(0, 229, 255, 0.5)';
+                const btnShadow = isLight ? '0 3px 12px rgba(2, 132, 199, 0.18)' : '0 3px 14px rgba(0, 229, 255, 0.22)';
+                const btnText = isLight ? '☀️ Sáng (Bấm đổi 🌙)' : '🌙 Tối (Bấm đổi ☀️)';
+
+                if (!floatBtn) {
+                    floatBtn = pDoc.createElement('button');
+                    floatBtn.id = 'quick-theme-floating-btn';
+                    floatBtn.style.position = 'fixed';
+                    floatBtn.style.top = '7px';
+                    floatBtn.style.right = '65px';
+                    floatBtn.style.zIndex = '9999999';
+                    floatBtn.style.padding = '3.5px 12px';
+                    floatBtn.style.borderRadius = '999px';
+                    floatBtn.style.cursor = 'pointer';
+                    floatBtn.style.fontFamily = "'JetBrains Mono', -apple-system, BlinkMacSystemFont, sans-serif";
+                    floatBtn.style.fontSize = '0.72rem';
+                    floatBtn.style.fontWeight = '700';
+                    floatBtn.style.transition = 'all 0.2s ease';
+                    floatBtn.title = isLight ? 'Bấm để chuyển sang chế độ Nền Tối' : 'Bấm để chuyển sang chế độ Nền Sáng';
+                    floatBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const radios = pDoc.querySelectorAll('input[type="radio"]');
+                        for (let r of radios) {
+                            const lbl = (r.parentElement ? r.parentElement.innerText : '') || '';
+                            if (isLight && (lbl.includes('Tối') || lbl.includes('Dark'))) {
+                                r.click();
+                                return;
+                            } else if (!isLight && (lbl.includes('Sáng') || lbl.includes('Light'))) {
+                                r.click();
+                                return;
+                            }
+                        }
+                    };
+                    pDoc.body.appendChild(floatBtn);
+                }
+                floatBtn.style.background = btnBg;
+                floatBtn.style.color = btnColor;
+                floatBtn.style.border = '1.5px solid ' + btnBorder;
+                floatBtn.style.boxShadow = btnShadow;
+                floatBtn.innerText = btnText;
             } catch(e) {}
         }
 
