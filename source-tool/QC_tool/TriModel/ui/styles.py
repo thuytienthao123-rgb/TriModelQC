@@ -13,33 +13,43 @@ def apply_custom_css(is_dark: bool = True):
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
     /* =========================================================================
-       CSS VARIABLES: DARK THEME (DEFAULT)
+       DYNAMIC ACTIVE THEME VARIABLES
        ========================================================================= */
     :root, body, .stApp {
-        --bg-main: #080c14;
-        --bg-sidebar: #0b101b;
-        --bg-header: #0f1626;
-        --bg-card: #111827;
-        --bg-card-sub: #141d30;
-        --border-c: #1e293b;
-        --border-header: #00e5ff;
-        --text-main: #f8fafc;
-        --text-sub: #94a3b8;
-        --text-muted: #cbd5e1;
-        --val-cyan: #00e5ff;
-        --val-indigo: #818cf8;
-        --val-rose: #f43f5e;
-        --val-amber: #fbbf24;
-        --val-emerald: #10b981;
-        --box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-        --badge-err-bg: rgba(244, 63, 94, 0.15);
-        --badge-err-txt: #fca5a5;
-        --badge-warn-bg: rgba(245, 158, 11, 0.15);
-        --badge-warn-txt: #fde68a;
-        --badge-ok-bg: rgba(16, 185, 129, 0.15);
-        --badge-ok-txt: #a7f3d0;
-        --tab-active-bg: rgba(0, 229, 255, 0.08);
-        --glow-cyan: 0 0 20px rgba(0, 229, 255, 0.25);
+        --bg-main: """ + ("#080c14" if is_dark else "#f8fafc") + """;
+        --bg-sidebar: """ + ("#0b101b" if is_dark else "#ffffff") + """;
+        --bg-header: """ + ("#0f1626" if is_dark else "#ffffff") + """;
+        --bg-card: """ + ("#111827" if is_dark else "#ffffff") + """;
+        --bg-card-sub: """ + ("#141d30" if is_dark else "#f1f5f9") + """;
+        --border-c: """ + ("#1e293b" if is_dark else "#e2e8f0") + """;
+        --border-header: """ + ("#00e5ff" if is_dark else "#0284c7") + """;
+        --text-main: """ + ("#f8fafc" if is_dark else "#0f172a") + """;
+        --text-sub: """ + ("#94a3b8" if is_dark else "#475569") + """;
+        --text-muted: """ + ("#cbd5e1" if is_dark else "#334155") + """;
+        --val-cyan: """ + ("#00e5ff" if is_dark else "#0284c7") + """;
+        --val-indigo: """ + ("#818cf8" if is_dark else "#4f46e5") + """;
+        --val-rose: """ + ("#f43f5e" if is_dark else "#e11d48") + """;
+        --val-amber: """ + ("#fbbf24" if is_dark else "#d97706") + """;
+        --val-emerald: """ + ("#10b981" if is_dark else "#059669") + """;
+        --box-shadow: """ + ("0 8px 30px rgba(0, 0, 0, 0.5)" if is_dark else "0 6px 20px rgba(0, 0, 0, 0.06)") + """;
+        --badge-err-bg: """ + ("rgba(244, 63, 94, 0.15)" if is_dark else "#fee2e2") + """;
+        --badge-err-txt: """ + ("#fca5a5" if is_dark else "#b91c1c") + """;
+        --badge-warn-bg: """ + ("rgba(245, 158, 11, 0.15)" if is_dark else "#fef3c7") + """;
+        --badge-warn-txt: """ + ("#fde68a" if is_dark else "#b45309") + """;
+        --badge-ok-bg: """ + ("rgba(16, 185, 129, 0.15)" if is_dark else "#d1fae5") + """;
+        --badge-ok-txt: """ + ("#a7f3d0" if is_dark else "#047857") + """;
+        --tab-active-bg: """ + ("rgba(0, 229, 255, 0.08)" if is_dark else "rgba(2, 132, 199, 0.08)") + """;
+        --glow-cyan: """ + ("0 0 20px rgba(0, 229, 255, 0.25)" if is_dark else "0 0 15px rgba(2, 132, 199, 0.18)") + """;
+    }
+
+    .stApp {
+        background-color: """ + ("#080c14" if is_dark else "#f8fafc") + """ !important;
+        color: """ + ("#f8fafc" if is_dark else "#0f172a") + """ !important;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: """ + ("#0b101b" if is_dark else "#ffffff") + """ !important;
+        border-right: 1px solid """ + ("#1e293b" if is_dark else "#e2e8f0") + """ !important;
     }
 
     html.theme-dark,
@@ -663,7 +673,7 @@ def apply_custom_css(is_dark: bool = True):
                     }
                 }
 
-                const isLight = (detected === 'light');
+                const isLight = """ + ("false" if is_dark else "true") + """;
 
                 // 4. Áp dụng class theme tương ứng
                 if (isLight) {
