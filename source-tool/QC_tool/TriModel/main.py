@@ -149,12 +149,12 @@ def main() -> int:
                                 rule_id="RULE_AI01",
                                 severity="ERROR" if agreed_cnt >= 3 or m_conf >= 0.60 else "WARNING",
                                 frame_name=frame.name,
-                                object_id=f"ai_missed_{m_idx:02d}",
+                                object_id=f"missed_{m_idx:02d}",
                                 category=m_cat,
                                 message=(
-                                    f"[AI {agreed_cnt}/3 Dong thuan] Bo sot [{m_cat}] tai "
+                                    f"MISSED: Bo sot [{m_cat}] tai "
                                     f"[{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] "
-                                    f"(WBF trung binh, conf: {m_conf:.0%})"
+                                    f"([AI {agreed_cnt}/3 Dong thuan], WBF conf: {m_conf:.0%})"
                                 ),
                             ))
                         # Báo lỗi sai class (RULE_AI02)

@@ -123,7 +123,7 @@ def render_tab_visualizer(
         lbl_instances = "INSTANCES"
         lbl_defects = "DEFECTS"
         lbl_warn = "WARN"
-        lbl_ai_missed = "AI MISSED"
+        lbl_ai_missed = "MISSED"
         lbl_loupe_toggle = "🔍 High-Precision Focus Loupe"
         help_loupe = "Automatically frames and zooms directly into selected defect instance"
         lbl_zoom_slider = "Loupe Zoom Factor:"
@@ -271,6 +271,28 @@ def render_tab_visualizer(
                         ensemble_mode=ensemble_mode,
                     )
                     ai_cache[selected_frame_name] = missed_objects
+
+                # Tự động đồng bộ lỗi MISSED của frame này vào báo cáo QC
+                cur_rep = st.session_state.get("qc_report")
+                if cur_rep is not None and missed_objects:
+                    cur_rep.errors = [e for e in cur_rep.errors if not (e.rule_id == "RULE_AI01" and e.frame_name == selected_frame_name)]
+                    for m_idx, m_obj in enumerate(missed_objects, start=1):
+                        mbx = m_obj["box2d"]
+                        m_cat = m_obj["category"]
+                        m_conf = m_obj.get("confidence", 0.8)
+                        err_msg = (
+                            f"MISSED: Phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})"
+                            if lang == "vi"
+                            else f"MISSED: Unlabeled [{m_cat}] detected at [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (confidence: {m_conf:.0%})"
+                        )
+                        cur_rep.add(QCError(
+                            rule_id="RULE_AI01",
+                            severity="ERROR" if m_conf >= 0.60 else "WARNING",
+                            frame_name=selected_frame_name,
+                            object_id=f"missed_{m_idx:02d}",
+                            category=m_cat,
+                            message=err_msg,
+                        ))
 
             cur_frame_errs = frame_error_map.get(selected_frame_name, [])
             n_f_err = sum(1 for e in cur_frame_errs if e.is_error())
@@ -484,7 +506,7 @@ def render_tab_visualizer(
                         ax.text(
                             max(5, mbx.x1),
                             max(18, mbx.y1 - 5),
-                            f"AI MISSED: {m_cat} ({m_conf:.0%})",
+                            f"MISSED: {m_cat} ({m_conf:.0%})",
                             color="#ec4899",
                             fontsize=8.0,
                             weight="bold",
@@ -761,6 +783,7 @@ def render_tab_visualizer(
                 canvas_w=img_w,
                 canvas_h=img_h,
                 lang=lang,
+                loaded_img=loaded_img,
             )
 
             # Layer Visibility Toggles at the bottom of Inspector

@@ -151,15 +151,15 @@ def main():
                         m_cat = m_obj["category"]
                         m_conf = m_obj["confidence"]
                         err_msg = (
-                            f"AI phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})"
+                            f"MISSED: Phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})"
                             if curr_lang == "vi"
-                            else f"AI detected unlabeled [{m_cat}] at [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (confidence: {m_conf:.0%})"
+                            else f"MISSED: Unlabeled [{m_cat}] detected at [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (confidence: {m_conf:.0%})"
                         )
                         _report.add(QCError(
                             rule_id="RULE_AI01",
                             severity="ERROR" if m_conf >= 0.60 else "WARNING",
                             frame_name=frame.name,
-                            object_id=f"ai_missed_{m_idx:02d}",
+                            object_id=f"missed_{m_idx:02d}",
                             category=m_cat,
                             message=err_msg,
                         ))

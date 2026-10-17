@@ -35,11 +35,39 @@ STANDARD_BDD_CLASSES = [
 ]
 
 
-def _reevaluate_qc(frames: List[FrameData]):
-    """Chạy lại đối soát QC trên toàn bộ dữ liệu nhãn đã chỉnh sửa."""
+def _sync_missed_to_report(report: QCReport, lang: str = "vi") -> None:
+    """Đồng bộ tất cả các vật thể bị bỏ sót (MISSED) từ cache AI vào QCReport để xuất hiện đầy đủ trong báo cáo."""
+    if report is None:
+        return
+    # Loại bỏ các lỗi RULE_AI01 cũ để tránh trùng lặp
+    report.errors = [e for e in report.errors if e.rule_id != "RULE_AI01"]
+    ai_cache = st.session_state.get("qc_ai_missed_cache", {})
+    for fname, missed_items in ai_cache.items():
+        for m_idx, m_obj in enumerate(missed_items, start=1):
+            mbx = m_obj["box2d"]
+            m_cat = m_obj["category"]
+            m_conf = m_obj.get("confidence", 0.8)
+            err_msg = (
+                f"MISSED: Phát hiện [{m_cat}] bị bỏ sót tại [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (độ tin cậy: {m_conf:.0%})"
+                if lang == "vi"
+                else f"MISSED: Unlabeled [{m_cat}] detected at [{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}] (confidence: {m_conf:.0%})"
+            )
+            report.add(QCError(
+                rule_id="RULE_AI01",
+                severity="ERROR" if m_conf >= 0.60 else "WARNING",
+                frame_name=fname,
+                object_id=f"missed_{m_idx:02d}",
+                category=m_cat,
+                message=err_msg,
+            ))
+
+
+def _reevaluate_qc(frames: List[FrameData], lang: str = "vi"):
+    """Chạy lại đối soát QC trên toàn bộ dữ liệu nhãn đã chỉnh sửa và bảo toàn các lỗi MISSED."""
     active_rules = st.session_state.get("qc_rules_snapshot", None)
     active_seq_rules = st.session_state.get("qc_active_seq_rules", None)
     report = run_qc(frames, rules=active_rules, sequence_rules=active_seq_rules)
+    _sync_missed_to_report(report, lang=lang)
     st.session_state["qc_report"] = report
     st.session_state["qc_frames"] = frames
 
@@ -51,6 +79,7 @@ def render_manual_editor_panel(
     canvas_w: int = 1920,
     canvas_h: int = 1080,
     lang: str = "vi",
+    loaded_img: Optional[Any] = None,
 ):
     """Giao diện tương tác sửa tay trực tiếp dành cho Annotator trong Inspector."""
     st.markdown("---")
@@ -154,7 +183,7 @@ def render_manual_editor_panel(
                             target_obj.attributes = {}
                         target_obj.attributes["occluded"] = new_occ
                         target_obj.attributes["truncated"] = new_trunc
-                        _reevaluate_qc(frames)
+                        _reevaluate_qc(frames, lang=lang)
                         st.toast(f"✅ Đã lưu đối tượng {target_obj.id} và cập nhật đối soát QC!", icon="💾")
                         st.rerun()
 
@@ -162,22 +191,48 @@ def render_manual_editor_panel(
                 btn_del_lbl = "🗑️ Xóa Box Này" if lang == "vi" else "🗑️ Delete Box"
                 if st.button(btn_del_lbl, use_container_width=True, key=f"btn_del_{selected_frame.name}_{target_obj.id}"):
                     selected_frame.objects = [o for o in selected_frame.objects if o.id != target_obj.id]
-                    _reevaluate_qc(frames)
+                    _reevaluate_qc(frames, lang=lang)
                     st.toast(f"🗑️ Đã xóa đối tượng {target_obj.id} khỏi nhãn!", icon="🗑️")
                     st.rerun()
 
     # -------------------------------------------------------------------------
-    # 2. CHẤP NHẬN GỢI Ý TỪ TRỢ LÝ AI (AI MISSED DETECTIONS -> NẠP THÀNH NHÃN)
+    # 2. CHẤP NHẬN GỢI Ý VẬT THỂ BỎ SÓT (MISSED -> NẠP THÀNH NHÃN)
     # -------------------------------------------------------------------------
     ai_missed_cache = st.session_state.get("qc_ai_missed_cache", {}).get(selected_frame.name, [])
     if ai_missed_cache:
-        ai_box_title = f"🤖 Gợi Ý AI: Phát Hiện {len(ai_missed_cache)} Vật Thể Bỏ Sót" if lang == "vi" else f"🤖 AI Suggestions: {len(ai_missed_cache)} Missed Instances"
+        ai_box_title = f"🤖 Gợi Ý MISSED: Phát Hiện {len(ai_missed_cache)} Vật Thể Bỏ Sót" if lang == "vi" else f"🤖 MISSED Suggestions: {len(ai_missed_cache)} Unlabeled Instances"
         with st.expander(ai_box_title, expanded=True):
             st.caption(
-                "Trợ lý AI YOLOv8 phát hiện các đối tượng chưa được gán nhãn. Bấm nút dưới để nạp nhanh vào nhãn:"
+                "Trợ lý AI phát hiện các đối tượng bị bỏ sót (MISSED) chưa được gán nhãn. Bạn có thể nạp từng đối tượng hoặc nạp toàn bộ một lần:"
                 if lang == "vi"
-                else "YOLOv8 detected unannotated objects. Click below to instantly accept them into the ground truth:"
+                else "AI consensus detected unlabeled objects (MISSED). Accept individually or import all at once:"
             )
+
+            # NÚT NẠP TOÀN BỘ VẬT THỂ BỎ SÓT
+            btn_all_lbl = f"📥 Nạp Toàn Bộ Vật Thể Bỏ Sót Vào Nhãn ({len(ai_missed_cache)})" if lang == "vi" else f"📥 Accept All Missed Objects ({len(ai_missed_cache)})"
+            if st.button(btn_all_lbl, type="primary", use_container_width=True, key=f"btn_acc_all_{selected_frame.name}"):
+                added_count = 0
+                for m_idx, m_item in enumerate(ai_missed_cache):
+                    mbx: BBox2D = m_item["box2d"]
+                    mcat = m_item["category"]
+                    new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}_{m_idx+1}"
+                    new_obj = LabeledObject(
+                        id=new_id,
+                        category=mcat,
+                        box2d=BBox2D(x1=mbx.x1, y1=mbx.y1, x2=mbx.x2, y2=mbx.y2),
+                        attributes={"occluded": False, "truncated": False},
+                    )
+                    selected_frame.objects.append(new_obj)
+                    added_count += 1
+                # Xóa toàn bộ cache cho frame này vì đã được nạp thành công
+                st.session_state["qc_ai_missed_cache"][selected_frame.name] = []
+                _reevaluate_qc(frames, lang=lang)
+                st.toast(f"✅ Đã nạp toàn bộ {added_count} vật thể bỏ sót vào danh sách nhãn!", icon="📥")
+                st.rerun()
+
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+
+            # NẠP TỪNG ĐỐI TƯỢNG RIÊNG LẺ
             for m_i, m_item in enumerate(ai_missed_cache):
                 mbx: BBox2D = m_item["box2d"]
                 mcat = m_item["category"]
@@ -189,9 +244,9 @@ def render_manual_editor_panel(
                         f"**{mcat}** · `[{int(mbx.x1)}, {int(mbx.y1)}, {int(mbx.x2)}, {int(mbx.y2)}]` ({mconf:.0%})"
                     )
                 with mcol_btn:
-                    btn_acc_lbl = "➕ Nạp Vào Nhãn" if lang == "vi" else "➕ Add to Label"
+                    btn_acc_lbl = "➕ Nạp Vào..." if lang == "vi" else "➕ Add Box"
                     if st.button(btn_acc_lbl, key=f"btn_acc_ai_{selected_frame.name}_{m_i}", use_container_width=True):
-                        new_id = f"ai_{mcat[:3]}_{int(time.time()*100)%10000}"
+                        new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}"
                         new_obj = LabeledObject(
                             id=new_id,
                             category=mcat,
@@ -202,45 +257,146 @@ def render_manual_editor_panel(
                         # Gỡ khỏi cache AI để không bị cảnh báo trùng
                         ai_missed_cache.pop(m_i)
                         st.session_state["qc_ai_missed_cache"][selected_frame.name] = ai_missed_cache
-                        _reevaluate_qc(frames)
-                        st.toast(f"✅ Đã nạp đối tượng AI [{mcat}] vào danh sách nhãn!", icon="➕")
+                        _reevaluate_qc(frames, lang=lang)
+                        st.toast(f"✅ Đã nạp đối tượng MISSED [{mcat}] vào danh sách nhãn!", icon="➕")
                         st.rerun()
 
     # -------------------------------------------------------------------------
-    # 3. THÊM ĐỐI TƯỢNG MỚI THỦ CÔNG
+    # 3. VẼ TAY TRỰC QUAN / THÊM ĐỐI TƯỢNG MỚI (VISUAL CLICK-AND-DRAG BBOX)
     # -------------------------------------------------------------------------
-    add_box_title = "➕ Vẽ / Thêm Đối Tượng Mới Vào Khung Hình" if lang == "vi" else "➕ Add New Annotation Box to Frame"
+    add_box_title = "🎨 Vẽ Tay & Thêm Đối Tượng Mới Vào Khung Hình" if lang == "vi" else "🎨 Visual Draw & Add Annotation Box"
     with st.expander(add_box_title, expanded=False):
         add_cat = st.selectbox(
-            "Lớp đối tượng:" if lang == "vi" else "Category:",
+            "Lớp đối tượng cần vẽ:" if lang == "vi" else "Target Category:",
             options=STANDARD_BDD_CLASSES,
             index=0,
             key=f"madd_cat_{selected_frame.name}",
         )
-        col_ax1, col_ax2 = st.columns(2)
-        with col_ax1:
-            add_x1 = st.number_input("x1:", value=50.0, step=10.0, min_value=0.0, max_value=float(canvas_w), key=f"madd_x1_{selected_frame.name}")
-            add_y1 = st.number_input("y1:", value=50.0, step=10.0, min_value=0.0, max_value=float(canvas_h), key=f"madd_y1_{selected_frame.name}")
-        with col_ax2:
-            add_x2 = st.number_input("x2:", value=250.0, step=10.0, min_value=0.0, max_value=float(canvas_w), key=f"madd_x2_{selected_frame.name}")
-            add_y2 = st.number_input("y2:", value=200.0, step=10.0, min_value=0.0, max_value=float(canvas_h), key=f"madd_y2_{selected_frame.name}")
 
-        btn_add_lbl = "➕ Thêm Box Vào Khung Hình" if lang == "vi" else "➕ Add Box to Frame"
-        if st.button(btn_add_lbl, use_container_width=True, key=f"btn_add_new_{selected_frame.name}"):
-            if add_x2 <= add_x1 or add_y2 <= add_y1:
-                st.error("⚠️ Tọa độ không hợp lệ: x2 > x1 và y2 > y1!" if lang == "vi" else "⚠️ Invalid: x2 > x1 and y2 > y1!")
-            else:
-                new_id = f"user_{len(selected_frame.objects)+1:03d}"
-                new_obj = LabeledObject(
-                    id=new_id,
-                    category=add_cat,
-                    box2d=BBox2D(x1=add_x1, y1=add_y1, x2=add_x2, y2=add_y2),
-                    attributes={"occluded": False, "truncated": False},
+        # Kiểm tra xem có ảnh hiển thị để người dùng vẽ tay trực tiếp hay không
+        if loaded_img is not None:
+            st.markdown(
+                """
+                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.78rem;">
+                    🎯 <strong>Hướng dẫn vẽ tay trực quan:</strong> Nhấn giữ chuột và kéo thả (Drag & Drop) quanh vật thể nhìn thấy trên ảnh dưới đây. Box sẽ tự động được tạo theo đúng kích thước bạn vẽ!
+                </div>
+                """
+                if lang == "vi"
+                else """
+                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.78rem;">
+                    🎯 <strong>Visual Mouse Drawing:</strong> Click and drag your mouse across the object in the image below to automatically create a bounding box.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Tự động scale vừa khung cột inspector (khoảng 420px)
+            disp_w = 420
+            scale_ratio = float(canvas_w) / float(disp_w)
+
+            try:
+                from streamlit_image_coordinates import streamlit_image_coordinates
+                drag_val = streamlit_image_coordinates(
+                    loaded_img,
+                    width=disp_w,
+                    key=f"drag_canvas_{selected_frame.name}",
+                    click_and_drag=True,
+                    cursor="crosshair",
                 )
-                selected_frame.objects.append(new_obj)
-                _reevaluate_qc(frames)
-                st.toast(f"✅ Đã thêm mới đối tượng {new_id} ({add_cat})!", icon="🎉")
-                st.rerun()
+            except Exception:
+                drag_val = None
+
+            # Khi người dùng kéo thả chuột trên ảnh
+            if drag_val and "x1" in drag_val and "x2" in drag_val:
+                raw_x1 = drag_val["x1"]
+                raw_y1 = drag_val["y1"]
+                raw_x2 = drag_val["x2"]
+                raw_y2 = drag_val["y2"]
+
+                calc_x1 = round(min(raw_x1, raw_x2) * scale_ratio, 1)
+                calc_y1 = round(min(raw_y1, raw_y2) * scale_ratio, 1)
+                calc_x2 = round(max(raw_x1, raw_x2) * scale_ratio, 1)
+                calc_y2 = round(max(raw_y1, raw_y2) * scale_ratio, 1)
+
+                if (calc_x2 - calc_x1) >= 8 and (calc_y2 - calc_y1) >= 8:
+                    st.session_state[f"drawn_box_{selected_frame.name}"] = {
+                        "x1": calc_x1,
+                        "y1": calc_y1,
+                        "x2": calc_x2,
+                        "y2": calc_y2,
+                        "cat": add_cat,
+                    }
+
+            drawn_cache = st.session_state.get(f"drawn_box_{selected_frame.name}")
+            if drawn_cache:
+                bx1 = drawn_cache["x1"]
+                by1 = drawn_cache["y1"]
+                bx2 = drawn_cache["x2"]
+                by2 = drawn_cache["y2"]
+                bw = int(bx2 - bx1)
+                bh = int(by2 - by1)
+
+                st.markdown(
+                    f"""
+                    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 6px; padding: 8px 12px; margin: 8px 0;">
+                        <span style="color: #10b981; font-weight: 700; font-size: 0.8rem;">✨ Box Bạn Vừa Vẽ:</span>
+                        <div style="font-family: monospace; font-size: 0.82rem; color: #f8fafc; margin-top: 2px;">
+                            Lớp: <strong style="color: #00e5ff;">{add_cat}</strong> · [{bx1}, {by1}, {bx2}, {by2}] ({bw}×{bh} px)
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                btn_c1, btn_c2 = st.columns([6, 4])
+                with btn_c1:
+                    btn_confirm_lbl = "➕ Thêm Box Vừa Vẽ Này" if lang == "vi" else "➕ Add Drawn Box"
+                    if st.button(btn_confirm_lbl, type="primary", use_container_width=True, key=f"btn_add_drawn_{selected_frame.name}"):
+                        new_id = f"user_{add_cat[:3]}_{len(selected_frame.objects)+1:02d}"
+                        new_obj = LabeledObject(
+                            id=new_id,
+                            category=add_cat,
+                            box2d=BBox2D(x1=bx1, y1=by1, x2=bx2, y2=by2),
+                            attributes={"occluded": False, "truncated": False},
+                        )
+                        selected_frame.objects.append(new_obj)
+                        st.session_state.pop(f"drawn_box_{selected_frame.name}", None)
+                        _reevaluate_qc(frames, lang=lang)
+                        st.toast(f"✅ Đã thêm mới đối tượng {new_id} ({add_cat}) từ nét vẽ!", icon="🎉")
+                        st.rerun()
+
+                with btn_c2:
+                    btn_reset_lbl = "🔄 Vẽ Lại" if lang == "vi" else "🔄 Reset"
+                    if st.button(btn_reset_lbl, use_container_width=True, key=f"btn_reset_drawn_{selected_frame.name}"):
+                        st.session_state.pop(f"drawn_box_{selected_frame.name}", None)
+                        st.rerun()
+
+        # Phần nhập tọa độ số phụ (Dành cho trường hợp không có ảnh hoặc muốn vi chỉnh)
+        with st.expander("⚙️ Nhập tọa độ số thủ công (Tùy chọn phụ)" if lang == "vi" else "⚙️ Manual Coordinate Input (Optional)", expanded=(loaded_img is None)):
+            col_ax1, col_ax2 = st.columns(2)
+            with col_ax1:
+                add_x1 = st.number_input("x1:", value=50.0, step=10.0, min_value=0.0, max_value=float(canvas_w), key=f"madd_x1_{selected_frame.name}")
+                add_y1 = st.number_input("y1:", value=50.0, step=10.0, min_value=0.0, max_value=float(canvas_h), key=f"madd_y1_{selected_frame.name}")
+            with col_ax2:
+                add_x2 = st.number_input("x2:", value=250.0, step=10.0, min_value=0.0, max_value=float(canvas_w), key=f"madd_x2_{selected_frame.name}")
+                add_y2 = st.number_input("y2:", value=200.0, step=10.0, min_value=0.0, max_value=float(canvas_h), key=f"madd_y2_{selected_frame.name}")
+
+            btn_add_lbl = "➕ Thêm Bằng Tọa Độ Số" if lang == "vi" else "➕ Add Box by Numbers"
+            if st.button(btn_add_lbl, use_container_width=True, key=f"btn_add_new_{selected_frame.name}"):
+                if add_x2 <= add_x1 or add_y2 <= add_y1:
+                    st.error("⚠️ Tọa độ không hợp lệ: x2 > x1 và y2 > y1!" if lang == "vi" else "⚠️ Invalid: x2 > x1 and y2 > y1!")
+                else:
+                    new_id = f"user_{len(selected_frame.objects)+1:03d}"
+                    new_obj = LabeledObject(
+                        id=new_id,
+                        category=add_cat,
+                        box2d=BBox2D(x1=add_x1, y1=add_y1, x2=add_x2, y2=add_y2),
+                        attributes={"occluded": False, "truncated": False},
+                    )
+                    selected_frame.objects.append(new_obj)
+                    _reevaluate_qc(frames, lang=lang)
+                    st.toast(f"✅ Đã thêm mới đối tượng {new_id} ({add_cat})!", icon="🎉")
+                    st.rerun()
 
     # -------------------------------------------------------------------------
     # 4. TẢI VỀ BỘ NHÃN ĐÃ SỬA HOÀN TẤT
