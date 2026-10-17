@@ -93,10 +93,9 @@ def render_tab_visualizer(
     # Header Tab 2 & Hotkey Badge
     if lang == "vi":
         header_pre = "HỆ THỐNG KIỂM TOÁN KHÔNG GIAN // SCALE NUCLEUS"
-        header_title = "Soi Chi Tiết Lỗi Hình Học & Kính Lúp Độ Phân Giải Cao"
+        header_title = "Kiểm Toán Trực Quan & Soi Chi Tiết Lỗi Hình Học"
         hotkey_prev = "[A / ←] Trước"
         hotkey_next = "[D / →] Tiếp"
-        hotkey_zoom = "[Z] Thu phóng"
         btn_prev_lbl = "◀ Lỗi trước (A)"
         btn_next_lbl = "Lỗi tiếp ▶ (D)"
         help_prev = "Phím tắt: A hoặc Phím Mũi tên Trái"
@@ -105,17 +104,11 @@ def render_tab_visualizer(
         lbl_defects = "LỖI"
         lbl_warn = "CẢNH BÁO"
         lbl_ai_missed = "AI BỎ SÓT"
-        lbl_loupe_toggle = "🔍 Kính Lúp Cận Cảnh"
-        help_loupe = "Tự động căn góc nhìn và phóng to trực diện vào vật thể / lỗi vi phạm đang chọn"
-        lbl_zoom_slider = "Độ phóng đại viền:"
-        zoom_opts = ["1.5x (Rộng)", "2.5x (Chuẩn)", "4.0x (Cực đại)"]
-        cap_overview = "🌐 Đang hiển thị toàn cảnh khung hình. Bật Kính Lúp để soi chi tiết từng pixel viền."
     else:
         header_pre = "SCALE NUCLEUS // SPATIAL AUDIT WORKSPACE"
-        header_title = "Spatial Defect Inspection & High-Precision Loupe"
+        header_title = "Spatial Defect Inspection & Visual Audit"
         hotkey_prev = "[A / ←] Prev"
         hotkey_next = "[D / →] Next"
-        hotkey_zoom = "[Z] Zoom"
         btn_prev_lbl = "◀ Prev Defect (A)"
         btn_next_lbl = "Next Defect ▶ (D)"
         help_prev = "Hotkey: A or Left Arrow"
@@ -124,13 +117,8 @@ def render_tab_visualizer(
         lbl_defects = "DEFECTS"
         lbl_warn = "WARN"
         lbl_ai_missed = "MISSED"
-        lbl_loupe_toggle = "🔍 High-Precision Focus Loupe"
-        help_loupe = "Automatically frames and zooms directly into selected defect instance"
-        lbl_zoom_slider = "Loupe Zoom Factor:"
-        zoom_opts = ["1.5x (Wide)", "2.5x (Standard)", "4.0x (Extreme)"]
-        cap_overview = "🌐 Full overview mode. Enable Focus Loupe to inspect contour pixel boundaries."
 
-    # Khởi tạo mặc định các lớp hiển thị và kính lúp nếu chưa có trong session_state
+    # Khởi tạo mặc định các lớp hiển thị nếu chưa có trong session_state
     if "scale_show_err" not in st.session_state:
         st.session_state["scale_show_err"] = True
     if "scale_show_warn" not in st.session_state:
@@ -141,12 +129,6 @@ def render_tab_visualizer(
         st.session_state["scale_show_labels"] = True
     if "scale_show_grid" not in st.session_state:
         st.session_state["scale_show_grid"] = False
-    if "scale_focus_zoom" not in st.session_state:
-        st.session_state["scale_focus_zoom"] = False
-    if "scale_zoom_factor" not in st.session_state or st.session_state["scale_zoom_factor"] not in zoom_opts:
-        cur_z = st.session_state.get("scale_zoom_factor", "")
-        matched = next((opt for opt in zoom_opts if opt[:4] in cur_z), zoom_opts[0])
-        st.session_state["scale_zoom_factor"] = matched
 
     st.markdown(f"""
     <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
@@ -158,7 +140,6 @@ def render_tab_visualizer(
             <span>⌨️ Hotkeys:</span>
             <span style="color: #00e5ff; font-weight: 700;">{hotkey_prev}</span>
             <span style="color: #818cf8; font-weight: 700;">{hotkey_next}</span>
-            <span style="color: #fbbf24; font-weight: 700;">{hotkey_zoom}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -348,25 +329,6 @@ def render_tab_visualizer(
             </div>
             """, unsafe_allow_html=True)
 
-            # Interactive Viewport Toolbar (Overview vs Focus Loupe Zoom)
-            v_col1, v_col2 = st.columns([4.2, 5.8])
-            with v_col1:
-                is_focus_zoom = st.toggle(
-                    lbl_loupe_toggle,
-                    key="scale_focus_zoom",
-                    help=help_loupe,
-                )
-
-            with v_col2:
-                if is_focus_zoom:
-                    zoom_factor = st.select_slider(
-                        lbl_zoom_slider,
-                        options=zoom_opts,
-                        key="scale_zoom_factor",
-                    )
-                else:
-                    st.caption(cap_overview)
-
             # Matplotlib Canvas styled for Scale Nucleus
             fig, ax = plt.subplots(figsize=(10.5, 6.2), dpi=105)
             fig.patch.set_facecolor(bg_main)
@@ -546,95 +508,7 @@ def render_tab_visualizer(
                             bbox=dict(facecolor="#080c14", edgecolor="#ec4899", boxstyle="round,pad=0.22", alpha=0.95),
                         )
 
-            # Handle Auto-Focus Zoom Viewport
-            if is_focus_zoom:
-                zoom_str = str(st.session_state.get("scale_zoom_factor", ""))
-                if "4.0x" in zoom_str:
-                    zoom_val = 4.0
-                elif "2.5x" in zoom_str:
-                    zoom_val = 2.5
-                else:
-                    zoom_val = 1.5
-
-                # 1. Xác định tâm phóng đại (Focus Center)
-                hud_target_name = ""
-                if focused_obj_target is not None:
-                    if focused_obj_target.box2d is not None:
-                        bx_t = focused_obj_target.box2d
-                        cx = (bx_t.x1 + bx_t.x2) / 2.0
-                        cy = (bx_t.y1 + bx_t.y2) / 2.0
-                    elif focused_obj_target.poly2d is not None and getattr(focused_obj_target.poly2d, "vertices", None):
-                        xs = [v[0] for v in focused_obj_target.poly2d.vertices]
-                        ys = [v[1] for v in focused_obj_target.poly2d.vertices]
-                        cx = (min(xs) + max(xs)) / 2.0
-                        cy = (min(ys) + max(ys)) / 2.0
-                    else:
-                        cx = canvas_w / 2.0
-                        cy = canvas_h / 2.0
-                    hud_target_name = f"Object: {focused_obj_target.id} ({focused_obj_target.category})"
-                elif cur_frame_errs:
-                    first_err = cur_frame_errs[0]
-                    first_oid = first_err.object_id.split("&")[0].strip()
-                    err_obj = next((o for o in selected_frame.objects if o.id == first_oid), None)
-                    if err_obj is not None and err_obj.box2d is not None:
-                        cx = (err_obj.box2d.x1 + err_obj.box2d.x2) / 2.0
-                        cy = (err_obj.box2d.y1 + err_obj.box2d.y2) / 2.0
-                        hud_target_name = f"Defect: {err_obj.id} ({first_err.rule_id})"
-                    else:
-                        cx = canvas_w / 2.0
-                        cy = canvas_h / 2.0
-                        hud_target_name = "TÂM KHUNG HÌNH" if lang == "vi" else "FRAME CENTER"
-                elif missed_objects:
-                    mbx = missed_objects[0]["box2d"]
-                    cx = (mbx.x1 + mbx.x2) / 2.0
-                    cy = (mbx.y1 + mbx.y2) / 2.0
-                    hud_target_name = f"MISSED: {missed_objects[0]['category']}"
-                else:
-                    cx = canvas_w / 2.0
-                    cy = canvas_h / 2.0
-                    hud_target_name = "TÂM KHUNG HÌNH" if lang == "vi" else "FRAME CENTER"
-
-                # 2. Tính toán biên cửa sổ phóng đại theo đúng tỉ lệ quang học (Optical Zoom)
-                half_w = (canvas_w / zoom_val) / 2.0
-                half_h = (canvas_h / zoom_val) / 2.0
-
-                x_min = cx - half_w
-                x_max = cx + half_w
-                if x_min < 0:
-                    x_max = min(float(canvas_w), x_max + (0.0 - x_min))
-                    x_min = 0.0
-                if x_max > canvas_w:
-                    x_min = max(0.0, x_min - (x_max - canvas_w))
-                    x_max = float(canvas_w)
-
-                y_min = cy - half_h
-                y_max = cy + half_h
-                if y_min < 0:
-                    y_max = min(float(canvas_h), y_max + (0.0 - y_min))
-                    y_min = 0.0
-                if y_max > canvas_h:
-                    y_min = max(0.0, y_min - (y_max - canvas_h))
-                    y_max = float(canvas_h)
-
-                # Invert Y để trục tọa độ phù hợp với hệ pixel ảnh (0 ở trên, canvas_h ở dưới)
-                ax.set_xlim(x_min, x_max)
-                ax.set_ylim(y_max, y_min)
-
-                # Zoom HUD Chip hiển thị thông số phóng đại trên canvas
-                hud_x = x_min + (x_max - x_min) * 0.02
-                hud_y = y_min + (y_max - y_min) * 0.06
-                ax.text(
-                    hud_x,
-                    hud_y,
-                    f"🔍 FOCUS LOUPE {zoom_val:.1f}x · {hud_target_name}",
-                    color="#00e5ff",
-                    fontsize=8.5,
-                    fontfamily="monospace",
-                    weight="bold",
-                    bbox=dict(facecolor="#080c14", edgecolor="#00e5ff", boxstyle="round,pad=0.3", alpha=0.95),
-                )
-
-            # Lưới tọa độ: chỉ hiển thị khi người dùng tick chọn 'Lưới tọa độ' (độc lập hoàn toàn với kính lúp)
+            # Lưới tọa độ: chỉ hiển thị khi người dùng tick chọn 'Lưới tọa độ'
             if show_grid_ly:
                 ax.grid(True, linestyle=":", alpha=0.35, color=border_c)
                 ax.tick_params(colors=text_sub, labelsize=7.5)

@@ -265,7 +265,8 @@ def render_manual_editor_panel(
     # 3. VẼ TAY TRỰC QUAN / THÊM ĐỐI TƯỢNG MỚI (VISUAL CLICK-AND-DRAG BBOX)
     # -------------------------------------------------------------------------
     add_box_title = "🎨 Vẽ Tay & Thêm Đối Tượng Mới Vào Khung Hình" if lang == "vi" else "🎨 Visual Draw & Add Annotation Box"
-    with st.expander(add_box_title, expanded=False):
+    drawn_cache = st.session_state.get(f"drawn_box_{selected_frame.name}")
+    with st.expander(add_box_title, expanded=True):
         add_cat = st.selectbox(
             "Lớp đối tượng cần vẽ:" if lang == "vi" else "Target Category:",
             options=STANDARD_BDD_CLASSES,
@@ -277,14 +278,22 @@ def render_manual_editor_panel(
         if loaded_img is not None:
             st.markdown(
                 """
-                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.78rem;">
-                    🎯 <strong>Hướng dẫn vẽ tay trực quan:</strong> Nhấn giữ chuột và kéo thả (Drag & Drop) quanh vật thể nhìn thấy trên ảnh dưới đây. Box sẽ tự động được tạo theo đúng kích thước bạn vẽ!
+                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.76rem; line-height: 1.45;">
+                    🎯 <strong>Thao tác chuột trực tiếp trên ảnh:</strong><br/>
+                    • <strong>Vẽ box:</strong> Bấm giữ chuột và kéo quanh vật thể.<br/>
+                    • <strong>Co duỗi kích thước:</strong> Bấm giữ 8 điểm neo (góc & cạnh) để kéo dãn / thu nhỏ.<br/>
+                    • <strong>Di chuyển:</strong> Rê chuột vào giữa box (con trỏ ✥) và kéo.<br/>
+                    • <strong>Zoom:</strong> Lăn con trỏ chuột để phóng to / thu nhỏ góc nhìn.
                 </div>
                 """
                 if lang == "vi"
                 else """
-                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.78rem;">
-                    🎯 <strong>Visual Mouse Drawing:</strong> Click and drag your mouse across the object in the image below to automatically create a bounding box.
+                <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.76rem; line-height: 1.45;">
+                    🎯 <strong>Interactive Mouse Controls:</strong><br/>
+                    • <strong>Draw:</strong> Click & drag across the object.<br/>
+                    • <strong>Resize / Stretch:</strong> Drag 8 anchor handles (corners & edges).<br/>
+                    • <strong>Move:</strong> Hover inside box (cursor ✥) and drag.<br/>
+                    • <strong>Zoom:</strong> Mouse scroll wheel to zoom in / out.
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -297,6 +306,7 @@ def render_manual_editor_panel(
                 orig_w=canvas_w,
                 orig_h=canvas_h,
                 display_w=390,
+                initial_box=drawn_cache,
                 key=f"visual_drawer_{selected_frame.name}",
             )
 
@@ -309,8 +319,9 @@ def render_manual_editor_panel(
                     "y2": draw_result["y2"],
                     "cat": add_cat,
                 }
-
-            drawn_cache = st.session_state.get(f"drawn_box_{selected_frame.name}")
+                drawn_cache = st.session_state[f"drawn_box_{selected_frame.name}"]
+            elif draw_result is None and f"drawn_box_{selected_frame.name}" in st.session_state and st.session_state.get(f"_just_cleared_{selected_frame.name}"):
+                drawn_cache = None
             if drawn_cache:
                 bx1 = drawn_cache["x1"]
                 by1 = drawn_cache["y1"]
