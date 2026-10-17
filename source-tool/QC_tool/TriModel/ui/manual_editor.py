@@ -290,42 +290,25 @@ def render_manual_editor_panel(
                 unsafe_allow_html=True,
             )
 
-            # Tự động scale vừa khung cột inspector (khoảng 420px)
-            disp_w = 420
-            scale_ratio = float(canvas_w) / float(disp_w)
+            from ui.visual_drawer import visual_bbox_drawer
+            draw_result = visual_bbox_drawer(
+                loaded_img,
+                label=add_cat,
+                orig_w=canvas_w,
+                orig_h=canvas_h,
+                display_w=390,
+                key=f"visual_drawer_{selected_frame.name}",
+            )
 
-            try:
-                from streamlit_image_coordinates import streamlit_image_coordinates
-                drag_val = streamlit_image_coordinates(
-                    loaded_img,
-                    width=disp_w,
-                    key=f"drag_canvas_{selected_frame.name}",
-                    click_and_drag=True,
-                    cursor="crosshair",
-                )
-            except Exception:
-                drag_val = None
-
-            # Khi người dùng kéo thả chuột trên ảnh
-            if drag_val and "x1" in drag_val and "x2" in drag_val:
-                raw_x1 = drag_val["x1"]
-                raw_y1 = drag_val["y1"]
-                raw_x2 = drag_val["x2"]
-                raw_y2 = drag_val["y2"]
-
-                calc_x1 = round(min(raw_x1, raw_x2) * scale_ratio, 1)
-                calc_y1 = round(min(raw_y1, raw_y2) * scale_ratio, 1)
-                calc_x2 = round(max(raw_x1, raw_x2) * scale_ratio, 1)
-                calc_y2 = round(max(raw_y1, raw_y2) * scale_ratio, 1)
-
-                if (calc_x2 - calc_x1) >= 8 and (calc_y2 - calc_y1) >= 8:
-                    st.session_state[f"drawn_box_{selected_frame.name}"] = {
-                        "x1": calc_x1,
-                        "y1": calc_y1,
-                        "x2": calc_x2,
-                        "y2": calc_y2,
-                        "cat": add_cat,
-                    }
+            # Khi người dùng kéo thả chuột vẽ xong trên Canvas
+            if draw_result and "x1" in draw_result and "x2" in draw_result:
+                st.session_state[f"drawn_box_{selected_frame.name}"] = {
+                    "x1": draw_result["x1"],
+                    "y1": draw_result["y1"],
+                    "x2": draw_result["x2"],
+                    "y2": draw_result["y2"],
+                    "cat": add_cat,
+                }
 
             drawn_cache = st.session_state.get(f"drawn_box_{selected_frame.name}")
             if drawn_cache:
