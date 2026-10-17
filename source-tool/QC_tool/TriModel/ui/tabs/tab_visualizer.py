@@ -185,7 +185,11 @@ def render_tab_visualizer(
     if "active_frame_name" not in st.session_state or st.session_state["active_frame_name"] not in frame_names_all:
         st.session_state["active_frame_name"] = error_frame_names[0] if error_frame_names else frame_names_all[0]
 
-    # Split workspace: Left 68% for Canvas + Toolbar, Right 32% for Scale Nucleus Inspector
+    # Split workspace: Dynamic width adjustment for right inspector sidebar
+    inspector_pct = st.session_state.get("scale_inspector_pct", 32)
+    workspace_ratio = (100 - inspector_pct) / 10.0
+    inspector_ratio = inspector_pct / 10.0
+
     st.markdown("""
     <style>
     /* Cố định khung ảnh visualizer ở vị trí tự nhiên khi cuộn trang */
@@ -198,11 +202,12 @@ def render_tab_visualizer(
     div[data-testid="stVerticalBlockBorderWrapper"] > div {
         overflow-y: auto !important;
         scrollbar-width: thin;
+    }
     </style>
     """, unsafe_allow_html=True)
 
     loaded_img = None
-    col_workspace, col_inspector = st.columns([6.8, 3.2])
+    col_workspace, col_inspector = st.columns([workspace_ratio, inspector_ratio])
 
     with col_workspace:
         # Navigation Bar above Canvas
@@ -529,15 +534,36 @@ def render_tab_visualizer(
         with st.container(height=840, border=True):
             inspector_title = "🎯 BẢNG SOI ĐỐI TƯỢNG & KÍNH LÚP" if lang == "vi" else "🎯 NUCLEUS INSPECTOR & LOUPE"
             st.markdown(f"""
-            <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; border-top: 3px solid #00e5ff;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-c); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; border-top: 3px solid #00e5ff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 800; color: #00e5ff; letter-spacing: 0.05em;">
                         {inspector_title}
                     </div>
-                    <span style="font-size: 0.7rem; color: #00e5ff; font-family: 'JetBrains Mono', monospace; background: rgba(0,229,255,0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.3);">SIDEBAR SCROLL</span>
+                    <span style="font-size: 0.68rem; color: #00e5ff; font-family: 'JetBrains Mono', monospace; background: rgba(0,229,255,0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.3);">
+                        SIDEBAR {inspector_pct}%
+                    </span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+            # Điều chỉnh độ rộng sidebar bên phải theo chiều ngang
+            w_c1, w_c2, w_c3, w_c4 = st.columns(4)
+            with w_c1:
+                if st.button("25% ◀", key="btn_insp_25", help="Thu hẹp sidebar bên phải xuống 25%", use_container_width=True):
+                    st.session_state["scale_inspector_pct"] = 25
+                    st.rerun()
+            with w_c2:
+                if st.button("32% •", key="btn_insp_32", help="Độ rộng chuẩn 32%", use_container_width=True):
+                    st.session_state["scale_inspector_pct"] = 32
+                    st.rerun()
+            with w_c3:
+                if st.button("40% ▶", key="btn_insp_40", help="Mở rộng sidebar bên phải lên 40%", use_container_width=True):
+                    st.session_state["scale_inspector_pct"] = 40
+                    st.rerun()
+            with w_c4:
+                if st.button("48% ⯈", key="btn_insp_48", help="Mở rộng tối đa sidebar bên phải lên 48%", use_container_width=True):
+                    st.session_state["scale_inspector_pct"] = 48
+                    st.rerun()
 
             if selected_frame:
                 obj_lookup = {o.id: o for o in selected_frame.objects}
@@ -762,3 +788,84 @@ def render_tab_visualizer(
                 with t_col2:
                     st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), key="scale_show_labels")
                     st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), key="scale_show_grid")
+
+    components.html("""
+    <script>
+    (function initTab2ColumnResizer() {
+        try {
+            const pDoc = window.parent.document;
+            const cols = pDoc.querySelectorAll('[data-testid="column"]');
+            if (cols.length >= 2) {
+                const col1 = cols[0];
+                const col2 = cols[1];
+                let divider = pDoc.getElementById('tab2-column-resizer');
+                if (!divider && col1 && col2 && col1.parentElement === col2.parentElement) {
+                    divider = pDoc.createElement('div');
+                    divider.id = 'tab2-column-resizer';
+                    divider.title = 'Kéo sang trái/phải để tùy chỉnh độ rộng sidebar bên phải';
+                    divider.style.width = '6px';
+                    divider.style.cursor = 'col-resize';
+                    divider.style.position = 'relative';
+                    divider.style.zIndex = '9999';
+                    divider.style.backgroundColor = 'transparent';
+                    divider.style.borderRadius = '3px';
+                    divider.style.margin = '0 2px';
+                    divider.style.transition = 'background-color 0.15s ease';
+                    divider.style.alignSelf = 'stretch';
+
+                    divider.addEventListener('mouseenter', () => { divider.style.backgroundColor = 'rgba(0, 229, 255, 0.5)'; });
+                    divider.addEventListener('mouseleave', () => { if (!divider.dataset.dragging) divider.style.backgroundColor = 'transparent'; });
+
+                    let isDragging = false;
+                    let startX = 0;
+                    let startCol1Width = 0;
+                    let startCol2Width = 0;
+
+                    divider.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        divider.dataset.dragging = 'true';
+                        startX = e.clientX;
+                        startCol1Width = col1.getBoundingClientRect().width;
+                        startCol2Width = col2.getBoundingClientRect().width;
+                        divider.style.backgroundColor = '#00e5ff';
+                        pDoc.body.style.cursor = 'col-resize';
+                        pDoc.body.style.userSelect = 'none';
+                        e.preventDefault();
+                    });
+
+                    pDoc.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        const delta = e.clientX - startX;
+                        const totalWidth = startCol1Width + startCol2Width;
+                        let newCol1Width = Math.max(300, startCol1Width + delta);
+                        let newCol2Width = totalWidth - newCol1Width;
+                        if (newCol2Width < 220) {
+                            newCol2Width = 220;
+                            newCol1Width = totalWidth - 220;
+                        }
+                        const col1Pct = (newCol1Width / totalWidth) * 100;
+                        const col2Pct = 100 - col1Pct;
+                        col1.style.flex = `0 0 ${col1Pct}%`;
+                        col1.style.maxWidth = `${col1Pct}%`;
+                        col2.style.flex = `0 0 ${col2Pct}%`;
+                        col2.style.maxWidth = `${col2Pct}%`;
+                    });
+
+                    pDoc.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            delete divider.dataset.dragging;
+                            divider.style.backgroundColor = 'transparent';
+                            pDoc.body.style.cursor = '';
+                            pDoc.body.style.userSelect = '';
+                        }
+                    });
+
+                    col1.parentElement.insertBefore(divider, col2);
+                }
+            }
+        } catch(e) {}
+    })();
+    </script>
+    """, height=0, width=0)
+
