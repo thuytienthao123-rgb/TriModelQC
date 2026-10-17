@@ -257,22 +257,133 @@ def apply_custom_css(is_dark: bool = True):
         transform: translateY(-2px) !important;
     }
 
-    /* Input & Select Customization */
-    div[data-baseweb="select"] > div {
-        background-color: var(--bg-card) !important;
+    /* =========================================================================
+       SIDEBAR & WIDGET THEME UNIFORMITY (ĐỒNG NHẤT NỀN SIDEBAR SÁNG & TỐI)
+       ========================================================================= */
+    /* 1. Selectbox & Dropdown Popovers */
+    div[data-baseweb="select"],
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] [role="combobox"],
+    div[data-baseweb="select"] input {
+        background-color: var(--bg-card-sub) !important;
         border-color: var(--border-c) !important;
+        color: var(--text-main) !important;
+        border-radius: 8px !important;
+    }
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] svg {
+        color: var(--text-main) !important;
+        fill: var(--text-main) !important;
+    }
+    div[data-baseweb="popover"],
+    div[data-baseweb="menu"],
+    ul[role="listbox"],
+    li[role="option"] {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border-c) !important;
+    }
+    li[role="option"]:hover,
+    li[role="option"][aria-selected="true"] {
+        background-color: var(--tab-active-bg) !important;
+        color: var(--val-cyan) !important;
+    }
+
+    /* 2. File Uploader Dropzone & Uploaded File Items */
+    [data-testid="stFileUploader"],
+    [data-testid="stFileUploader"] section,
+    section[data-testid="stFileUploadDropzone"],
+    div[data-baseweb="file-uploader"] {
+        background-color: var(--bg-card-sub) !important;
+        border: 1.5px dashed var(--border-c) !important;
+        border-radius: 10px !important;
+        color: var(--text-main) !important;
+    }
+    section[data-testid="stFileUploadDropzone"]:hover {
+        border-color: var(--val-cyan) !important;
+    }
+    section[data-testid="stFileUploadDropzone"] * {
+        color: var(--text-sub) !important;
+    }
+    section[data-testid="stFileUploadDropzone"] button {
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-c) !important;
+        color: var(--text-main) !important;
+        border-radius: 6px !important;
+    }
+    section[data-testid="stFileUploadDropzone"] button:hover {
+        border-color: var(--val-cyan) !important;
+        color: var(--val-cyan) !important;
+    }
+    /* Uploaded File list chips/cards in dark & light */
+    [data-testid="stUploadedFile"],
+    div[data-testid="stFileUploaderFile"],
+    ul[data-testid="stFileUploaderFile"] li,
+    ul[data-testid="stFileUploaderFile"] {
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-c) !important;
         border-radius: 8px !important;
         color: var(--text-main) !important;
     }
-    div[data-baseweb="select"] * {
+    [data-testid="stUploadedFile"] *,
+    div[data-testid="stFileUploaderFile"] * {
         color: var(--text-main) !important;
     }
+    [data-testid="stUploadedFile"] svg,
+    div[data-testid="stFileUploaderFile"] svg {
+        fill: var(--val-cyan) !important;
+    }
+
+    /* 3. Sidebar Buttons (Đổi bộ ảnh, Scan thư mục, Reset) */
+    [data-testid="stSidebar"] .stButton > button,
+    [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+        background-color: var(--bg-card-sub) !important;
+        border: 1px solid var(--border-c) !important;
+        color: var(--text-main) !important;
+        border-radius: 8px !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover,
+    [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover {
+        border-color: var(--val-cyan) !important;
+        color: var(--val-cyan) !important;
+        background-color: var(--bg-card) !important;
+    }
+
+    /* 4. Text & Number Inputs in Sidebar & Main */
     .stTextInput > div > div > input,
-    .stNumberInput > div > div > input {
-        background-color: var(--bg-card) !important;
+    .stNumberInput > div > div > input,
+    [data-testid="stSidebar"] input {
+        background-color: var(--bg-card-sub) !important;
         border-color: var(--border-c) !important;
         color: var(--text-main) !important;
         border-radius: 8px !important;
+    }
+    .stTextInput input:focus,
+    .stNumberInput input:focus,
+    [data-testid="stSidebar"] input:focus {
+        border-color: var(--val-cyan) !important;
+        box-shadow: 0 0 0 1px var(--val-cyan) !important;
+    }
+
+    /* 5. Radio Buttons & Checkboxes inside Sidebar */
+    [data-testid="stSidebar"] div[role="radiogroup"] label,
+    [data-testid="stSidebar"] .stCheckbox label,
+    [data-testid="stSidebar"] label p,
+    [data-testid="stSidebar"] label span {
+        color: var(--text-main) !important;
+    }
+
+    /* 6. Expanders in Sidebar */
+    [data-testid="stSidebar"] [data-testid="stExpander"],
+    [data-testid="stSidebar"] details {
+        background-color: var(--bg-card-sub) !important;
+        border: 1px solid var(--border-c) !important;
+        border-radius: 8px !important;
+        color: var(--text-main) !important;
+    }
+    [data-testid="stSidebar"] summary {
+        color: var(--text-main) !important;
     }
 
     /* Header Box - Tinh gọn, đặt sát mép trên */
