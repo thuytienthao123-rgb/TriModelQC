@@ -19,11 +19,13 @@ def visual_bbox_drawer(
     orig_w: int = 1920,
     orig_h: int = 1080,
     display_w: int = 390,
+    initial_box: Optional[Dict[str, Any]] = None,
     key: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
-    Component vẽ tay trực quan (Visual Mouse Drag & Drop BBox Drawer).
-    Cho phép Annotator dùng chuột kéo vẽ trực tiếp trên ảnh và trả về tọa độ pixel thực tế.
+    Component vẽ tay trực quan (Visual Mouse Drag & Drop & Resize BBox Drawer).
+    Cho phép Annotator dùng chuột kéo vẽ, co duỗi kích thước (stretch/resize),
+    di chuyển (move), và lăn chuột để zoom in/out chi tiết trực tiếp trên ảnh.
     """
     buf = BytesIO()
     # Resize nhẹ cho preview nếu ảnh quá lớn để tối ưu bộ nhớ và tốc độ truyền
@@ -42,6 +44,7 @@ def visual_bbox_drawer(
         orig_w=orig_w,
         orig_h=orig_h,
         display_w=display_w,
+        initial_box=initial_box,
         key=key,
         default=None,
     )

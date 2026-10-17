@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visual BBox Drawer</title>
+  <title>Visual Interactive BBox Drawer & Resizer</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
@@ -29,14 +29,36 @@
       font-size: 0.74rem;
       color: #94a3b8;
       font-family: monospace;
+      flex-wrap: wrap;
+      gap: 4px;
     }
     .badge-guide {
       background: rgba(0, 229, 255, 0.12);
       color: #00e5ff;
       border: 1px solid rgba(0, 229, 255, 0.3);
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .btn-tool {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: monospace;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-tool:hover {
+      background: #334155;
+      color: #ffffff;
+      border-color: #00e5ff;
+    }
+    .btn-tool:active {
+      transform: scale(0.96);
     }
     #canvas-container {
       position: relative;
@@ -53,15 +75,24 @@
       cursor: crosshair;
       width: 100%;
       height: auto;
+      touch-action: none;
     }
     .footer-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.72rem;
-      color: #64748b;
+      color: #94a3b8;
       font-family: monospace;
       padding-top: 2px;
+    }
+    .help-row {
+      font-size: 0.68rem;
+      color: #64748b;
+      line-height: 1.3;
+      padding: 2px 2px 0 2px;
+      border-top: 1px dashed #1e293b;
+      margin-top: 2px;
     }
     .highlight-txt {
       color: #10b981;
@@ -72,15 +103,26 @@
 <body>
   <div id="wrapper">
     <div class="status-bar">
-      <span class="badge-guide">🖱️ KÉO THẢ CHUỘT ĐỂ VẼ BOX</span>
-      <span id="label-tag" style="color: #00e5ff; font-weight: 700;">LỚP: CAR</span>
+      <span class="badge-guide">🖐️ KÉO THẢ & CO DUỖI BOX</span>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span id="label-tag" style="color: #00e5ff; font-weight: 700;">LỚP: CAR</span>
+        <button id="btn-reset-zoom" class="btn-tool" title="Đặt lại góc nhìn 1:1">🔍 1:1</button>
+        <button id="btn-clear-box" class="btn-tool" style="color: #f43f5e;" title="Xóa khung box">🗑️ Xóa</button>
+      </div>
     </div>
+
     <div id="canvas-container">
       <canvas id="c"></canvas>
     </div>
+
     <div class="footer-bar">
-      <span id="coord-hud">Di chuột vào ảnh để ngắm</span>
+      <span id="coord-hud">Di chuột để ngắm</span>
+      <span id="zoom-hud" style="color: #38bdf8;">Zoom: 1.0x</span>
       <span id="box-hud" class="highlight-txt">Chưa vẽ</span>
+    </div>
+
+    <div class="help-row">
+      💡 <strong>Mẹo:</strong> Kéo góc/cạnh để <strong>co duỗi</strong> • Di chuột vào giữa để <strong>di chuyển</strong> • Lăn chuột để <strong>zoom in/out</strong> • Chuột phải kéo để <strong>di hình (pan)</strong>
     </div>
   </div>
 
@@ -96,158 +138,398 @@
     const ctx = canvas.getContext("2d");
     const labelTag = document.getElementById("label-tag");
     const coordHud = document.getElementById("coord-hud");
+    const zoomHud = document.getElementById("zoom-hud");
     const boxHud = document.getElementById("box-hud");
+    const btnResetZoom = document.getElementById("btn-reset-zoom");
+    const btnClearBox = document.getElementById("btn-clear-box");
 
     let bgImage = new Image();
     let imgLoaded = false;
-    let isDrawing = false;
-    let startX = 0, startY = 0;
-    let currX = 0, currY = 0;
     let origW = 1920, origH = 1080;
+    let baseW = 390, baseH = 219;
     let currentLabel = "car";
+
+    // Zoom & Pan
+    let zoom = 1.0;
+    let panX = 0, panY = 0;
+    let isPanning = false;
+    let panStartX = 0, panStartY = 0;
+    let initialPanX = 0, initialPanY = 0;
+
+    // Box state: { x1, y1, x2, y2 } in original image coordinates
     let drawnBox = null;
 
-    function renderCanvas() {
-      if (!imgLoaded) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    // Interaction mode: null | 'drawing' | 'moving' | 'resizing' | 'panning'
+    let currentMode = null;
+    let activeHandle = null;
+    let dragStartOrig = { x: 0, y: 0 };
+    let initialBoxState = null;
 
-      const scaleX = origW / canvas.width;
-      const scaleY = origH / canvas.height;
+    const HANDLE_RADIUS = 9; // hit radius in screen pixels
+    const HANDLES = ['tl', 'tr', 'br', 'bl', 't', 'b', 'l', 'r'];
 
-      // 1. Vẽ box đang kéo chuột
-      if (isDrawing) {
-        const x = Math.min(startX, currX);
-        const y = Math.min(startY, currY);
-        const w = Math.abs(currX - startX);
-        const h = Math.abs(currY - startY);
-
-        ctx.fillStyle = "rgba(0, 229, 255, 0.22)";
-        ctx.fillRect(x, y, w, h);
-
-        ctx.setLineDash([5, 3]);
-        ctx.strokeStyle = "#00e5ff";
-        ctx.lineWidth = 2.2;
-        ctx.strokeRect(x, y, w, h);
-        ctx.setLineDash([]);
-
-        // Label Tag góc box
-        const tagW = Math.max(80, currentLabel.length * 8 + 65);
-        ctx.fillStyle = "#00e5ff";
-        ctx.fillRect(x, Math.max(0, y - 18), tagW, 18);
-        ctx.fillStyle = "#080c14";
-        ctx.font = "bold 10px monospace";
-        ctx.fillText(`${currentLabel} (${Math.round(w*scaleX)}×${Math.round(h*scaleY)})`, x + 4, Math.max(13, y - 4));
-      }
-      // 2. Vẽ box đã vẽ xong
-      else if (drawnBox) {
-        const bx = drawnBox.x1 / scaleX;
-        const by = drawnBox.y1 / scaleY;
-        const bw = (drawnBox.x2 - drawnBox.x1) / scaleX;
-        const bh = (drawnBox.y2 - drawnBox.y1) / scaleY;
-
-        ctx.fillStyle = "rgba(16, 185, 129, 0.25)";
-        ctx.fillRect(bx, by, bw, bh);
-
-        ctx.strokeStyle = "#10b981";
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(bx, by, bw, bh);
-
-        // 4 góc điểm neo (handles)
-        ctx.fillStyle = "#ffffff";
-        const hs = 4;
-        ctx.fillRect(bx - hs, by - hs, hs*2, hs*2);
-        ctx.fillRect(bx + bw - hs, by - hs, hs*2, hs*2);
-        ctx.fillRect(bx - hs, by + bh - hs, hs*2, hs*2);
-        ctx.fillRect(bx + bw - hs, by + bh - hs, hs*2, hs*2);
-
-        // Nhãn lớp
-        const tagW = Math.max(80, currentLabel.length * 8 + 65);
-        ctx.fillStyle = "#10b981";
-        ctx.fillRect(bx, Math.max(0, by - 18), tagW, 18);
-        ctx.fillStyle = "#080c14";
-        ctx.font = "bold 10px monospace";
-        ctx.fillText(`${currentLabel} (${Math.round(drawnBox.x2 - drawnBox.x1)}×${Math.round(drawnBox.y2 - drawnBox.y1)})`, bx + 4, Math.max(13, by - 4));
-      }
+    // ---------------------------------------------------------------------------
+    // Tọa độ toán học (Screen <-> Image Coordinates)
+    // ---------------------------------------------------------------------------
+    function origToScreen(ox, oy) {
+      const bx = (ox / origW) * baseW;
+      const by = (oy / origH) * baseH;
+      return {
+        x: bx * zoom + panX,
+        y: by * zoom + panY
+      };
     }
 
-    function getCanvasPos(e) {
+    function screenToOrig(sx, sy) {
+      const bx = (sx - panX) / zoom;
+      const by = (sy - panY) / zoom;
+      let ox = Math.round((bx / baseW) * origW);
+      let oy = Math.round((by / baseH) * origH);
+      ox = Math.max(0, Math.min(origW, ox));
+      oy = Math.max(0, Math.min(origH, oy));
+      return { x: ox, y: oy };
+    }
+
+    function getMouseCanvasPos(e) {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
       return {
-        x: Math.max(0, Math.min(canvas.width, (clientX - rect.left) * scaleX)),
-        y: Math.max(0, Math.min(canvas.height, (clientY - rect.top) * scaleY))
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
       };
     }
 
+    // ---------------------------------------------------------------------------
+    // Hit-testing cho 8 điểm neo co duỗi và vùng di chuyển
+    // ---------------------------------------------------------------------------
+    function getHandleAt(sx, sy) {
+      if (!drawnBox) return null;
+      const p1 = origToScreen(drawnBox.x1, drawnBox.y1);
+      const p2 = origToScreen(drawnBox.x2, drawnBox.y2);
+      const left = Math.min(p1.x, p2.x);
+      const right = Math.max(p1.x, p2.x);
+      const top = Math.min(p1.y, p2.y);
+      const bottom = Math.max(p1.y, p2.y);
+      const midX = (left + right) / 2;
+      const midY = (top + bottom) / 2;
+
+      const handlePoints = {
+        'tl': { x: left, y: top, cursor: 'nwse-resize' },
+        'tr': { x: right, y: top, cursor: 'nesw-resize' },
+        'br': { x: right, y: bottom, cursor: 'nwse-resize' },
+        'bl': { x: left, y: bottom, cursor: 'nesw-resize' },
+        't':  { x: midX, y: top, cursor: 'ns-resize' },
+        'b':  { x: midX, y: bottom, cursor: 'ns-resize' },
+        'l':  { x: left, y: midY, cursor: 'ew-resize' },
+        'r':  { x: right, y: midY, cursor: 'ew-resize' },
+      };
+
+      for (const h of HANDLES) {
+        const pt = handlePoints[h];
+        if (Math.hypot(sx - pt.x, sy - pt.y) <= HANDLE_RADIUS + 3) {
+          return { handle: h, cursor: pt.cursor };
+        }
+      }
+
+      // Kiểm tra chuột nằm trong box
+      if (sx >= left && sx <= right && sy >= top && sy <= bottom) {
+        return { handle: 'inside', cursor: 'move' };
+      }
+
+      return null;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Canvas Render Loop
+    // ---------------------------------------------------------------------------
+    function renderCanvas() {
+      if (!imgLoaded) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      // Vẽ ảnh nền với Zoom & Pan
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
+      ctx.drawImage(bgImage, 0, 0, baseW, baseH);
+      ctx.restore();
+
+      // Vẽ Box và các Handle co duỗi
+      if (drawnBox) {
+        const p1 = origToScreen(drawnBox.x1, drawnBox.y1);
+        const p2 = origToScreen(drawnBox.x2, drawnBox.y2);
+        const bx = Math.min(p1.x, p2.x);
+        const by = Math.min(p1.y, p2.y);
+        const bw = Math.abs(p2.x - p1.x);
+        const bh = Math.abs(p2.y - p1.y);
+
+        // Nền mờ của Box
+        ctx.fillStyle = currentMode === 'drawing' ? "rgba(0, 229, 255, 0.22)" : "rgba(16, 185, 129, 0.22)";
+        ctx.fillRect(bx, by, bw, bh);
+
+        // Viền Box
+        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = currentMode === 'drawing' ? "#00e5ff" : "#10b981";
+        if (currentMode === 'drawing') ctx.setLineDash([5, 3]);
+        else ctx.setLineDash([]);
+        ctx.strokeRect(bx, by, bw, bh);
+        ctx.setLineDash([]);
+
+        // Label Tag góc trên
+        const origW_px = Math.round(Math.abs(drawnBox.x2 - drawnBox.x1));
+        const origH_px = Math.round(Math.abs(drawnBox.y2 - drawnBox.y1));
+        const tagText = `${currentLabel.toUpperCase()} [${origW_px}×${origH_px}]`;
+        const tagW = Math.max(90, tagText.length * 7 + 16);
+        ctx.fillStyle = currentMode === 'drawing' ? "#00e5ff" : "#10b981";
+        ctx.fillRect(bx, Math.max(0, by - 19), tagW, 19);
+        ctx.fillStyle = "#080c14";
+        ctx.font = "bold 10.5px monospace";
+        ctx.fillText(tagText, bx + 5, Math.max(13, by - 5));
+
+        // 8 Điểm Neo Co Duỗi (Handles)
+        const midX = bx + bw / 2;
+        const midY = by + bh / 2;
+        const pts = [
+          { x: bx, y: by }, // tl
+          { x: bx + bw, y: by }, // tr
+          { x: bx + bw, y: by + bh }, // br
+          { x: bx, y: by + bh }, // bl
+          { x: midX, y: by }, // t
+          { x: midX, y: by + bh }, // b
+          { x: bx, y: midY }, // l
+          { x: bx + bw, y: midY } // r
+        ];
+
+        pts.forEach(pt => {
+          // Vòng sáng ngoài
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#00e5ff";
+          ctx.stroke();
+        });
+      }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Sự kiện Chuột: Vẽ, Co duỗi, Di chuyển, Pan
+    // ---------------------------------------------------------------------------
     function handleStart(e) {
       if (!imgLoaded) return;
+      const pos = getMouseCanvasPos(e);
+
+      // 1. Pan mode bằng chuột giữa hoặc chuột phải
+      if (e.button === 1 || e.button === 2) {
+        e.preventDefault();
+        currentMode = 'panning';
+        panStartX = pos.x;
+        panStartY = pos.y;
+        initialPanX = panX;
+        initialPanY = panY;
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+
+      if (e.button !== 0 && !e.touches) return;
       e.preventDefault();
-      const pos = getCanvasPos(e);
-      isDrawing = true;
-      startX = pos.x;
-      startY = pos.y;
-      currX = pos.x;
-      currY = pos.y;
-      drawnBox = null;
-      boxHud.innerText = "Đang kéo...";
+
+      const hit = getHandleAt(pos.x, pos.y);
+      const origPt = screenToOrig(pos.x, pos.y);
+
+      if (hit && hit.handle !== 'inside') {
+        // Co duỗi bằng 1 trong 8 điểm neo
+        currentMode = 'resizing';
+        activeHandle = hit.handle;
+        initialBoxState = { ...drawnBox };
+        dragStartOrig = origPt;
+        canvas.style.cursor = hit.cursor;
+        boxHud.innerText = `Đang co duỗi [${hit.handle}]...`;
+      } else if (hit && hit.handle === 'inside') {
+        // Di chuyển toàn bộ box
+        currentMode = 'moving';
+        initialBoxState = { ...drawnBox };
+        dragStartOrig = origPt;
+        canvas.style.cursor = 'move';
+        boxHud.innerText = "Đang di chuyển box...";
+      } else {
+        // Bấm ra ngoài -> Bắt đầu vẽ box mới
+        currentMode = 'drawing';
+        dragStartOrig = origPt;
+        drawnBox = { x1: origPt.x, y1: origPt.y, x2: origPt.x, y2: origPt.y };
+        canvas.style.cursor = 'crosshair';
+        boxHud.innerText = "Đang kéo vẽ...";
+      }
+
       renderCanvas();
     }
 
     function handleMove(e) {
       if (!imgLoaded) return;
-      const pos = getCanvasPos(e);
-      const scaleX = origW / canvas.width;
-      const scaleY = origH / canvas.height;
-      coordHud.innerText = `X: ${Math.round(pos.x * scaleX)}, Y: ${Math.round(pos.y * scaleY)}`;
+      const pos = getMouseCanvasPos(e);
+      const origPt = screenToOrig(pos.x, pos.y);
+      coordHud.innerText = `X: ${origPt.x}, Y: ${origPt.y}`;
 
-      if (isDrawing) {
-        e.preventDefault();
-        currX = pos.x;
-        currY = pos.y;
-        const w = Math.round(Math.abs(currX - startX) * scaleX);
-        const h = Math.round(Math.abs(currY - startY) * scaleY);
+      if (!currentMode) {
+        // Cập nhật con trỏ khi rê chuột quanh các điểm neo
+        const hit = getHandleAt(pos.x, pos.y);
+        canvas.style.cursor = hit ? hit.cursor : 'crosshair';
+        return;
+      }
+
+      e.preventDefault();
+
+      if (currentMode === 'panning') {
+        panX = initialPanX + (pos.x - panStartX);
+        panY = initialPanY + (pos.y - panStartY);
+        renderCanvas();
+        return;
+      }
+
+      if (currentMode === 'drawing') {
+        drawnBox = {
+          x1: Math.min(dragStartOrig.x, origPt.x),
+          y1: Math.min(dragStartOrig.y, origPt.y),
+          x2: Math.max(dragStartOrig.x, origPt.x),
+          y2: Math.max(dragStartOrig.y, origPt.y),
+        };
+        const w = drawnBox.x2 - drawnBox.x1;
+        const h = drawnBox.y2 - drawnBox.y1;
         boxHud.innerText = `[${w}×${h} px]`;
+        renderCanvas();
+      } else if (currentMode === 'moving') {
+        const dx = origPt.x - dragStartOrig.x;
+        const dy = origPt.y - dragStartOrig.y;
+        const bw = initialBoxState.x2 - initialBoxState.x1;
+        const bh = initialBoxState.y2 - initialBoxState.y1;
+        let nx1 = initialBoxState.x1 + dx;
+        let ny1 = initialBoxState.y1 + dy;
+        let nx2 = initialBoxState.x2 + dx;
+        let ny2 = initialBoxState.y2 + dy;
+
+        // Giữ box trong phạm vi ảnh
+        if (nx1 < 0) { nx2 -= nx1; nx1 = 0; }
+        if (ny1 < 0) { ny2 -= ny1; ny1 = 0; }
+        if (nx2 > origW) { nx1 -= (nx2 - origW); nx2 = origW; }
+        if (ny2 > origH) { ny1 -= (ny2 - origH); ny2 = origH; }
+
+        drawnBox = {
+          x1: Math.round(nx1),
+          y1: Math.round(ny1),
+          x2: Math.round(nx2),
+          y2: Math.round(ny2),
+        };
+        boxHud.innerText = `[${Math.round(nx1)}, ${Math.round(ny1)}] (${bw}×${bh})`;
+        renderCanvas();
+      } else if (currentMode === 'resizing') {
+        let { x1, y1, x2, y2 } = initialBoxState;
+        if (activeHandle.includes('l')) x1 = origPt.x;
+        if (activeHandle.includes('r')) x2 = origPt.x;
+        if (activeHandle.includes('t')) y1 = origPt.y;
+        if (activeHandle.includes('b')) y2 = origPt.y;
+
+        drawnBox = {
+          x1: Math.min(x1, x2),
+          y1: Math.min(y1, y2),
+          x2: Math.max(x1, x2),
+          y2: Math.max(y1, y2),
+        };
+        const w = drawnBox.x2 - drawnBox.x1;
+        const h = drawnBox.y2 - drawnBox.y1;
+        boxHud.innerText = `Co duỗi: [${w}×${h} px]`;
         renderCanvas();
       }
     }
 
     function handleEnd(e) {
-      if (!isDrawing) return;
-      isDrawing = false;
-      const scaleX = origW / canvas.width;
-      const scaleY = origH / canvas.height;
+      if (!currentMode) return;
 
-      const x1 = Math.round(Math.min(startX, currX) * scaleX);
-      const y1 = Math.round(Math.min(startY, currY) * scaleY);
-      const x2 = Math.round(Math.max(startX, currX) * scaleX);
-      const y2 = Math.round(Math.max(startY, currY) * scaleY);
-      const bw = x2 - x1;
-      const bh = y2 - y1;
-
-      if (bw >= 10 && bh >= 10) {
-        drawnBox = { x1: x1, y1: y1, x2: x2, y2: y2 };
-        boxHud.innerText = `✅ Đã chọn [${bw}×${bh}]`;
-        renderCanvas();
-        // Gửi kết quả vẽ ngay lập tức về Streamlit!
-        sendValue({
-          x1: x1,
-          y1: y1,
-          x2: x2,
-          y2: y2,
-          category: currentLabel,
-          time: Date.now()
-        });
-      } else {
-        boxHud.innerText = "Hủy (quá nhỏ)";
-        drawnBox = null;
-        renderCanvas();
+      if (currentMode === 'panning') {
+        currentMode = null;
+        canvas.style.cursor = 'crosshair';
+        return;
       }
+
+      if (drawnBox) {
+        const w = Math.abs(drawnBox.x2 - drawnBox.x1);
+        const h = Math.abs(drawnBox.y2 - drawnBox.y1);
+        if (w >= 6 && h >= 6) {
+          drawnBox = {
+            x1: Math.round(Math.min(drawnBox.x1, drawnBox.x2)),
+            y1: Math.round(Math.min(drawnBox.y1, drawnBox.y2)),
+            x2: Math.round(Math.max(drawnBox.x1, drawnBox.x2)),
+            y2: Math.round(Math.max(drawnBox.y1, drawnBox.y2)),
+          };
+          boxHud.innerText = `✅ [${w}×${h} px]`;
+          // Gửi kết quả ngay lập tức về Streamlit
+          sendValue({
+            x1: drawnBox.x1,
+            y1: drawnBox.y1,
+            x2: drawnBox.x2,
+            y2: drawnBox.y2,
+            category: currentLabel,
+            time: Date.now()
+          });
+        } else {
+          boxHud.innerText = "Hủy (quá nhỏ)";
+          drawnBox = null;
+          sendValue(null);
+        }
+      }
+
+      currentMode = null;
+      activeHandle = null;
+      renderCanvas();
     }
 
+    // ---------------------------------------------------------------------------
+    // Lăn chuột để Zoom In / Out trực tiếp (Mouse Wheel Optical Zoom)
+    // ---------------------------------------------------------------------------
+    canvas.addEventListener("wheel", function(e) {
+      e.preventDefault();
+      const pos = getMouseCanvasPos(e);
+      const oldZoom = zoom;
+      const zoomFactor = e.deltaY < 0 ? 1.25 : 0.8;
+      let newZoom = Math.max(1.0, Math.min(5.0, oldZoom * zoomFactor));
+      if (Math.abs(newZoom - 1.0) < 0.05) newZoom = 1.0;
+
+      if (newZoom === 1.0) {
+        panX = 0;
+        panY = 0;
+      } else {
+        panX = pos.x - (pos.x - panX) * (newZoom / oldZoom);
+        panY = pos.y - (pos.y - panY) * (newZoom / oldZoom);
+      }
+
+      zoom = newZoom;
+      zoomHud.innerText = `Zoom: ${zoom.toFixed(1)}x`;
+      renderCanvas();
+    }, { passive: false });
+
+    // Ngăn chặn context menu khi bấm chuột phải để dùng chuột phải Pan ảnh
+    canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+    // Nút đặt lại Zoom 1:1
+    btnResetZoom.addEventListener("click", () => {
+      zoom = 1.0;
+      panX = 0;
+      panY = 0;
+      zoomHud.innerText = "Zoom: 1.0x";
+      renderCanvas();
+    });
+
+    // Nút Xóa Box
+    btnClearBox.addEventListener("click", () => {
+      drawnBox = null;
+      boxHud.innerText = "Đã xóa";
+      sendValue(null);
+      renderCanvas();
+    });
+
+    // Gắn sự kiện chuột & cảm ứng
     canvas.addEventListener("mousedown", handleStart);
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleEnd);
@@ -256,7 +538,9 @@
     window.addEventListener("touchmove", handleMove, { passive: false });
     window.addEventListener("touchend", handleEnd, { passive: false });
 
-    // Lắng nghe sự kiện Render từ Streamlit
+    // ---------------------------------------------------------------------------
+    // Lắng nghe Streamlit Render
+    // ---------------------------------------------------------------------------
     window.addEventListener("message", function(event) {
       if (event.data && event.data.type === "streamlit:render") {
         const args = event.data.args || {};
@@ -267,14 +551,27 @@
         if (args.orig_w) origW = args.orig_w;
         if (args.orig_h) origH = args.orig_h;
 
+        if (args.initial_box && !drawnBox) {
+          drawnBox = {
+            x1: args.initial_box.x1,
+            y1: args.initial_box.y1,
+            x2: args.initial_box.x2,
+            y2: args.initial_box.y2,
+          };
+          const w = Math.abs(drawnBox.x2 - drawnBox.x1);
+          const h = Math.abs(drawnBox.y2 - drawnBox.y1);
+          boxHud.innerText = `✅ [${w}×${h} px]`;
+        }
+
         if (args.img_b64) {
           const newSrc = "data:image/jpeg;base64," + args.img_b64;
           if (bgImage.src !== newSrc) {
             bgImage.onload = function() {
               imgLoaded = true;
-              const displayW = args.display_w || 400;
-              canvas.width = displayW;
-              canvas.height = Math.round(displayW * (bgImage.naturalHeight / bgImage.naturalWidth));
+              baseW = args.display_w || 390;
+              baseH = Math.round(baseW * (bgImage.naturalHeight / bgImage.naturalWidth));
+              canvas.width = baseW;
+              canvas.height = baseH;
               renderCanvas();
               setTimeout(() => {
                 setFrameHeight(document.getElementById("wrapper").scrollHeight + 16);
@@ -289,11 +586,11 @@
       }
     });
 
-    // Thông báo cho Streamlit component đã sẵn sàng
+    // Thông báo Streamlit component đã sẵn sàng
     sendMessage("streamlit:componentReady", { apiVersion: 1 });
     setTimeout(() => {
       setFrameHeight(document.getElementById("wrapper").scrollHeight + 20);
-    }, 150);
+    }, 120);
   </script>
 </body>
 </html>
