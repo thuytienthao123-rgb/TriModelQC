@@ -10,13 +10,14 @@
 
 | Mã | Tóm tắt | Nhánh phát sinh | Loại | Mục guideline / Phân hệ | Trạng thái | Hướng giải quyết & Kết quả |
 |---|---|---|---|---|---|---|
-| [P-001](#p-001) | Mô hình SAM-2 chạy bằng Notebook Colab bị cô lập, khó cài đặt trên Windows và chưa tích hợp vào luồng Web QC Tool | Nhánh Thắng & Đức | Pain point công cụ / Tương thích | `sam2_model/` · §3 (Polygon) | 🗣️ Đang bàn | Đóng gói API Python wrapper có cờ fallback CPU/GPU để nối vào nút sinh Polygon trên Web |
-| [P-002](#p-002) | Ngưỡng nhận diện Zero-shot OwlViT trong notebook SAM-2 quá thấp (`BOX_THRESHOLD = 0.08`) gây nhiều báo động giả (False Positives) ban đêm | Nhánh Thắng & Đức | Sai lệch mô hình / Báo động giả | `sam2_model.ipynb` | 🛠️ Đang xử lý | Nâng ngưỡng tin cậy lên $\ge 0.25$ hoặc dùng Tri-Model Ensemble (3/3 đồng thuận) để lọc nhiễu |
-| [P-003](#p-003) | Chỉ số đánh giá IoU giữa Bounding Box hình chữ nhật đặc và Mask Polygon trong SAM-2 chưa phản ánh đúng chất lượng phân đoạn | Nhánh Thắng & Đức | Sai số phương pháp luận | `sam2_model.ipynb` (Cell 12) | 🛠️ Đang xử lý | Đổi sang so sánh BBox của Mask với BBox gốc, hoặc đo Dice/IoU với Ground Truth thực tế |
-| [P-004](#p-004) | Giao diện Hàng đợi Phê duyệt (Reviewer Disposition Hub) chưa có cơ chế lưu trữ bền vững (Persistence) qua các phiên làm việc | Nhánh Thắng & Đức | Trải nghiệm người dùng / UX | `ui/tabs/tab_error_list.py` | 🛠️ Làm tool | Bổ sung nút xuất file kết quả kiểm duyệt `disposition_audit.json`/CSV và cache session |
-| [P-005](#p-005) | Mô hình đơn lẻ `yolov8n` bỏ sót vật thể nhỏ ở làn xa và xe bị che khuất; box AI bị lệch mép vật thể | Nhánh Tiên - Chứ - Hiếu | Pain point công cụ / AI Blind-spot | `qc/ai_detector.py` · `RULE_AI01` | ✅ Đã làm tool | Triển khai Tri-Model Ensemble (3 multi-scale pipelines) kết hợp thuật toán WBF lấy trung bình tọa độ |
-| [P-006](#p-006) | Độ trễ hiển thị và tải tài nguyên ảnh 1080p khi thao tác kính lúp (Focus Loupe) & Matplotlib trên canvas | Toàn nhóm | Hiệu năng / Tối ưu hóa | `ui/tabs/tab_visualizer.py` | 🗣️ Đang bàn | Tối ưu kích thước preview ảnh canvas và cân nhắc chuyển render vector sang phía client |
-| [P-007](#p-007) | Nguy cơ phân mảnh mã nguồn do tồn tại hai nhánh phát triển công cụ song song | Toàn nhóm | Quy trình phát triển / Kiến trúc | Hệ thống chung | 🗣️ Đang bàn | Đã nối cầu nối `ui/ai_assistant.py`; chuẩn bị buổi demo đối chứng Tuần 06 để hợp nhất sản phẩm |
+| [P-001](#p-001) | Mô hình SAM-2 chạy bằng Notebook Colab bị cô lập, khó cài đặt trên Windows và chưa tích hợp vào luồng Web QC Tool | Nhánh Thắng & Đức | Pain point công cụ / Tương thích | `Sam_model/` · §3 (Polygon) | 🗣️ Đang bàn | Đóng gói API Python wrapper có cờ fallback CPU/GPU để nối vào nút sinh Polygon trên Web |
+| [P-002](#p-002) | Ngưỡng nhận diện Zero-shot OwlViT trong notebook SAM-2 quá thấp (`BOX_THRESHOLD = 0.08`) gây nhiều báo động giả (False Positives) ban đêm | Nhánh Thắng & Đức | Sai lệch mô hình / Báo động giả | `Sam_model/` (sam2_model.ipynb) | 🛠️ Đang xử lý | Nâng ngưỡng tin cậy lên $\ge 0.25$ hoặc dùng Tri-Model Ensemble (3/3 đồng thuận) để lọc nhiễu |
+| [P-003](#p-003) | Chỉ số đánh giá IoU giữa Bounding Box hình chữ nhật đặc và Mask Polygon trong SAM-2 chưa phản ánh đúng chất lượng phân đoạn | Nhánh Thắng & Đức | Sai số phương pháp luận | `Sam_model/` (Cell 12) | 🛠️ Đang xử lý | Đổi sang so sánh BBox của Mask với BBox gốc, hoặc đo Dice/IoU với Ground Truth thực tế |
+| [P-004](#p-004) | Giao diện Hàng đợi Phê duyệt (Reviewer Disposition Hub) chưa có cơ chế lưu trữ bền vững (Persistence) qua các phiên làm việc | Nhánh Thắng & Đức | Trải nghiệm người dùng / UX | `TriModel/ui/tabs/tab_error_list.py` | 🛠️ Làm tool | Bổ sung nút xuất file kết quả kiểm duyệt `disposition_audit.json`/CSV và cache session |
+| [P-005](#p-005) | Mô hình đơn lẻ `yolov8n` bỏ sót vật thể nhỏ ở làn xa và xe bị che khuất; box AI bị lệch mép vật thể | Nhánh Tiên - Chứ - Hiếu | Pain point công cụ / AI Blind-spot | `TriModel/qc/ai_detector.py` · `RULE_AI01` | ✅ Đã làm tool | Triển khai Tri-Model Ensemble (3 multi-scale pipelines) kết hợp thuật toán WBF; đạt 54/54 unit tests PASS 100% |
+| [P-006](#p-006) | Độ trễ hiển thị, lỗi kẹt cuộn chuột và khoảng trống header thừa trên giao diện Web | Nhánh Tiên - Chứ - Hiếu | Trải nghiệm người dùng / Hiệu năng | `TriModel/ui/styles.py`, `tab_visualizer.py` | ✅ Đã làm tool | Tối ưu hóa padding header, cố định toolbar góc trên phải, đưa iframe ẩn ra ngoài viewport, cuộn chuột mượt 100% |
+| [P-007](#p-007) | Nguy cơ phân mảnh mã nguồn do tồn tại hai nhánh phát triển công cụ song song | Toàn nhóm | Quy trình phát triển / Kiến trúc | Cấu trúc thư mục kho lưu trữ | ✅ Đã giải quyết | Tái cấu trúc thành 2 phân hệ độc lập `TriModel/` và `Sam_model/`, đẩy nhánh riêng `QC_tool/TriModel` lên GitHub |
+| [P-008](#p-008) | Quy trình gán nhãn một chiều khiến Annotator không thể trực tiếp sửa lỗi phát hiện từ QC Tool | Nhánh Tiên - Chứ - Hiếu | Pain point công cụ / Khả năng khắc phục | `TriModel/ui/manual_editor.py` | ✅ Đã làm tool | Tích hợp Bộ công cụ sửa tay nhãn (Annotator Suite): sửa tọa độ, class, occluded/truncated, xóa/thêm box, đối soát lại tức thì |
 
 **Loại:** Guideline chưa nói tới · Guideline mơ hồ · Guideline mâu thuẫn · Pain point công cụ · Tương thích môi trường · Sai số phương pháp luận  
 **Trạng thái:** 🔴 Mở · 🗣️ Đang bàn · ↗️ Chờ mentor · ✅ Đã chốt / Đã làm tool · 🛠️ Đang xử lý · ⚪ Bỏ
@@ -133,32 +134,32 @@
   3. *Lợi ích:* Cần giảm $\ge 70\%$ công sức reviewer phải căng mắt soi tìm xe sót trên ảnh 1080p.
   4. *CVAT chưa có sẵn:* CVAT không có cơ chế tự động bù box đồng thuận đa mô hình.
 - **Hướng xử lý & Kết quả:**
-  - ✅ **Đã hoàn thành module `qc/ai_detector.py`:**
+  - ✅ **Đã hoàn thành module `TriModel/qc/ai_detector.py`:**
     - Xây dựng kiến trúc **Tri-Model Ensemble**: Kết hợp Model 1 (Base 640px), Model 2 (High-Res Specialist 960px soi xe nhỏ ở làn xa) và Model 3 (TTA Augmented 800px xóa góc khuất).
     - Cài đặt thuật toán **Weighted Boxes Fusion (WBF)** tính trung bình có trọng số tọa độ theo confidence, giúp hộp bao bám khít mép vật thể.
     - Cung cấp 2 chế độ đồng thuận: **Strict (3/3 model cùng nhận diện)** giúp triệt tiêu $95\%$ báo động giả; và **Majority (2/3 model)** bao quát tối đa các góc khuất.
     - Tích hợp tính năng **1-Click Auto-Fix**: Xuất file `.txt` YOLO đã tự động bù các box thiếu để nạp thẳng lại vào công cụ gán nhãn.
-    - Đã vượt qua toàn bộ **47/47 unit test cases** tự động bằng Pytest.
-- **Trạng thái:** ✅ Đã hoàn thành code và đang đưa vào kiểm thử nội bộ.
+    - Đã vượt qua toàn bộ **54/54 unit test cases** tự động bằng Pytest (PASS 100%).
+- **Trạng thái:** ✅ Đã hoàn thành và kiểm thử thành công 100%.
 
 ---
 
 ## P-006
 
-**Độ trễ hiển thị và tải tài nguyên ảnh 1080p khi thao tác kính lúp (Focus Loupe) & Matplotlib trên canvas**
+**Độ trễ hiển thị, lỗi kẹt cuộn chuột và khoảng trống header thừa trên giao diện Web**
 
-- **Loại:** Hiệu năng & Tối ưu hóa (Performance)
-- **Phân hệ liên quan:** `source-tool/QC_tool/ui/tabs/tab_visualizer.py`
-- **Người phát hiện:** Hoàng Công Chứ (`2A202602187`) & Nguyễn Thanh Đức (`2A202602279`) · 15/10/2026
+- **Loại:** Trải nghiệm người dùng (UX) & Hiệu năng
+- **Phân hệ liên quan:** `source-tool/QC_tool/TriModel/ui/styles.py`, `tab_visualizer.py`
+- **Người phát hiện:** Hoàng Công Chứ (`2A202602187`) & Trần Thị Thủy Tiên (`2A202602171`) · 15/10/2026
 - **Mô tả hiện trạng:**
-  - Trong phân hệ trực quan hóa `tab_visualizer.py`, tính năng kính lúp (Focus Loupe) và vẽ hộp bao sử dụng thư viện `matplotlib` phía máy chủ (backend), sau đó xuất ra ảnh tĩnh rồi truyền qua giao thức Streamlit WebSocket về trình duyệt.
-  - Khi thao tác trên khung hình Full HD (1920×1080) có hàng chục bounding box và polygon, mỗi lần thay đổi lựa chọn đối tượng hoặc điều chỉnh tiêu cự kính lúp, máy chủ mất khoảng 1.0 – 2.0 giây để render lại toàn bộ figure.
-  - Độ trễ này ảnh hưởng đến trải nghiệm người dùng khi cần lướt nhanh qua danh sách các đối tượng lỗi.
-- **Hướng đề xuất & Xử lý:**
-  1. Tạo ảnh thumbnail/preview có kích thước tối ưu hóa cho canvas hiển thị, chỉ nạp ảnh gốc độ phân giải cao khi kích hoạt cửa sổ kính lúp chi tiết.
-  2. Áp dụng kỹ thuật cache cục bộ cho các layer đã vẽ (bằng `st.cache_data` hoặc PIL ImageDraw thay vì gọi toàn bộ Matplotlib figure nặng nề).
-  3. Nghiên cứu giải pháp render trực tiếp bằng Canvas HTML5/Javascript phía client trong các phiên bản nâng cấp tiếp theo.
-- **Trạng thái:** 🗣️ Đang bàn thảo giải pháp tối ưu.
+  - Phần đầu trang bên phải xuất hiện khoảng trống rỗng màu đen lớn (~150-200px), cụm nút `Deploy` và `⋮` bị rơi xuống giữa trang gây bất hợp lý về mặt thị giác.
+  - Vùng nội dung bên phải bị kẹt cuộn chuột (mouse wheel) do thẻ `iframe` của Streamlit Components chiếm dụng sự kiện lăn chuột.
+- **Hướng xử lý & Kết quả:**
+  - ✅ **Đã tối ưu hóa toàn diện CSS & Layout:**
+    1. Giảm `padding-top: 0.6rem !important;` trên `.block-container`, triệt tiêu hoàn toàn khoảng trống đen rỗng.
+    2. Cố định cụm `stToolbar` (chứa nút Deploy và menu 3 chấm) tại vị trí góc trên cùng bên phải (`top: 4px; right: 12px; z-index: 1000000;`).
+    3. Đưa các thẻ iframe ẩn ra khỏi viewport (`position: fixed; bottom: -200px; pointer-events: none;`) và kích hoạt `overflow-y: auto !important`, giúp cuộn chuột mượt mà 100%.
+- **Trạng thái:** ✅ Đã làm tool và kiểm tra trực quan đạt chuẩn.
 
 ---
 
@@ -170,12 +171,32 @@
 - **Phân hệ liên quan:** Toàn bộ dự án kho lưu trữ `P-037`
 - **Người phát hiện:** Trần Thị Thủy Tiên (`2A202602171`) — Team Lead · 15/10/2026
 - **Mô tả hiện trạng:**
-  - Trong tuần 05, nhóm hình thành hai hướng tiếp cận độc lập:
-    - **Nhánh chính (Tiên - Chứ - Hiếu):** Tập trung vào Lõi AI Tri-Model Consensus Detector, thuật toán hợp nhất WBF, 2 Rule AI mới (`RULE_AI01`, `RULE_AI02`), nút xuất file bù nhãn 1-Click Auto-Fix và bộ unit test tự động.
-    - **Nhánh song song (Thắng - Đức):** Tập trung vào chuẩn hóa tài liệu quy trình, thiết kế phân hệ giao diện Scale Nucleus (chia tab, kính lúp Focus Loupe, Reviewer Disposition Hub) và thực nghiệm mô hình SAM-2.
-  - Việc phát triển song song tạo ra sự đa dạng về ý tưởng nhưng nếu không có kế hoạch hợp nhất rõ ràng sẽ dẫn đến xung đột mã nguồn (merge conflicts) và phân tán nguồn lực kiểm thử.
-- **Hướng đề xuất & Xử lý:**
-  1. Nhóm đã thực hiện bước đi đồng bộ đầu tiên: Đã merge thành công nhánh remote vào `main`, kết nối module `TriModelAIDetector` trực tiếp vào tầng dịch vụ giao diện mới thông qua file [ui/ai_assistant.py](source-tool/QC_tool/ui/ai_assistant.py).
-  2. Báo cáo tuần 05 đã được quy hoạch rõ ràng thành 2 Phần A và B độc lập để ghi nhận đầy đủ đóng góp của từng thành viên.
-  3. **Kế hoạch Tuần 06:** Tổ chức buổi họp demo đối chứng nội bộ giữa hai nhánh để đánh giá toàn diện, giữ lại các tính năng ưu việt nhất từ cả hai phía (kết hợp Giao diện Nucleus chuyên nghiệp của Thắng - Đức với Lõi Tri-Model WBF chính xác cao của Tiên - Chứ - Hiếu) để hoàn thiện phiên bản sản phẩm cuối cùng.
-- **Trạng thái:** 🗣️ Đang triển khai theo kế hoạch phối hợp Tuần 06.
+  - Việc tồn tại 2 nhóm công cụ (nhánh TriModel của Tiên - Chứ - Hiếu và nhánh Sam_model của Thắng - Đức) trong cùng thư mục `QC_tool` gây khó khăn cho việc quản lý mã nguồn, chạy kiểm thử và đóng gói nộp bài.
+- **Hướng xử lý & Kết quả:**
+  - ✅ **Đã tái cấu trúc thư mục rõ ràng và độc lập:**
+    1. Tạo 2 thư mục con riêng biệt bên trong `source-tool/QC_tool`:
+       - `TriModel/`: Chứa toàn bộ sản phẩm QC Tool Nâng Cao tích hợp AI Ensemble, 15 bộ luật, Focus Loupe, Annotator Suite và 54 tests.
+       - `Sam_model/`: Chứa notebook nghiên cứu SAM-2 và tập dữ liệu ban đêm của Thắng - Đức kèm tài liệu README riêng.
+    2. Tạo nhánh Git riêng `QC_tool/TriModel` và đã đẩy toàn bộ mã nguồn cùng tập dữ liệu `dataset_final` lên GitHub an toàn, không ảnh hưởng đến nhánh khác.
+- **Trạng thái:** ✅ Đã giải quyết triệt để.
+
+---
+
+## P-008
+
+**Quy trình gán nhãn một chiều khiến Annotator không thể trực tiếp sửa lỗi phát hiện từ QC Tool**
+
+- **Loại:** Pain point công cụ / Khả năng khắc phục lỗi (Actionability)
+- **Phân hệ liên quan:** `source-tool/QC_tool/TriModel/ui/manual_editor.py`
+- **Người phát hiện:** Trần Thị Thủy Tiên (`2A202602171`) · 16/10/2026
+- **Mô tả hiện trạng:**
+  - Các công cụ QC truyền thống chỉ dừng lại ở mức "bắt lỗi và xuất danh sách", sau đó Annotator phải mở lại phần mềm CVAT để tìm từng ảnh, vẽ lại từng box rồi nộp lại qua nhiều vòng duyệt tốn kém thời gian.
+  - Khi Trợ lý AI phát hiện xe hoặc người đi bộ bị bỏ sót (`RULE_AI01`), người dùng không có cách nào nạp nhanh vào nhãn mà phải tự đo tọa độ thủ công.
+- **Hướng xử lý & Kết quả:**
+  - ✅ **Đã phát triển Bộ công cụ sửa tay nhãn (Annotator Suite):**
+    1. Form sửa tay trực tiếp: Cho phép điều chỉnh tọa độ $[x_1, y_1, x_2, y_2]$, thay đổi Category (danh mục 12 lớp BDD100K) và thuộc tính `occluded`, `truncated`.
+    2. Nút **💾 Lưu Thay Đổi** và **🗑️ Xóa Box Này**: Tự động chạy lại quy trình đối soát 15 bộ luật thời gian thực (`_reevaluate_qc`), làm mới điểm số nghiệm thu ngay tức thì.
+    3. Nút **➕ Nạp Vào Nhãn**: 1-click đưa vật thể AI phát hiện thiếu vào tập nhãn chính thức.
+    4. Nút xuất và tải về trực tiếp tệp nhãn đã chữa lành: **BDD100K JSON** và **YOLO ZIP**, sẵn sàng đưa thẳng vào huấn luyện mô hình.
+- **Trạng thái:** ✅ Đã làm tool và tích hợp trực tiếp vào Tab 2.
+

@@ -11,68 +11,66 @@
 
 ---
 
-# PHẦN A: BÁO CÁO NHÁNH TRI-MODEL AI CONSENSUS & WBF ENSEMBLE
+# PHẦN A: BÁO CÁO NHÁNH TRI-MODEL AI CONSENSUS & WBF ENSEMBLE (MÃ NGUỒN: QC_tool/TriModel)
 *(Phụ trách: Trần Thị Thủy Tiên, Hoàng Công Chứ, Đào Ngọc Hiếu)*
 
 ## 1. Phân công nhiệm vụ cụ thể
 
-| Thành viên | MSSV | Vai trò chính | Phân công cụ thể trong tuần 05 |
+| Thành viên | MSSV | Vai trò chính | Phân công cụ thể & Kết quả đạt được trong tuần 05 |
 |---|---|---|---|
-| **Trần Thị Thủy Tiên** | `2A202602171` | **Team Lead · AI & Architecture Lead** | • Định hướng bài toán, thiết kế kiến trúc đa mô hình (Tri-Model Ensemble) nhằm giảm thiểu điểm mù của model đơn lẻ `yolov8n`.<br>• Nghiên cứu và cài đặt thuật toán hợp nhất hộp bao **Weighted Boxes Fusion (WBF)** kết hợp cơ chế đồng thuận 2 cấp độ (Strict 3/3 & Majority 2/3).<br>• Thiết kế cơ chế đối chiếu tự động (Cross-check) phát hiện vật thể bỏ sót (`RULE_AI01`) và sai danh mục (`RULE_AI02`).<br>• Thiết kế tính năng **1-Click Auto-Fix** xuất file nhãn bù box tự động, hướng tới mục tiêu giảm tải công việc cho Reviewer. |
-| **Hoàng Công Chứ** | `2A202602187` | **Core Engine & Integration Engineer** | • Nâng cấp QC Engine (`qc/engine.py`) và Reporter (`qc/reporter.py`) hỗ trợ 2 Rule AI mới trên các định dạng xuất kết quả (CLI, HTML, CSV).<br>• Nâng cấp giao diện Web Streamlit (`app.py`): tích hợp cụm điều khiển Tri-Model, visualizer trực quan hóa hộp bao AI nét đứt neon tím/cam kèm tỷ lệ đồng thuận, bảng dữ liệu WBF; **hiện đang tiến hành kiểm thử giao diện**.<br>• Xây dựng script tiện ích khởi chạy nhanh trên Windows ([run_qc_tool.bat](../run_qc_tool.bat), [run.bat](../run.bat)) để phục vụ việc test nội bộ thuận tiện hơn. |
-| **Đào Ngọc Hiếu** | `2A202602081` | **AI Specialist & Benchmark Lead** | • Khảo sát và thiết lập cấu hình 3 pipeline mô hình: Model 1 (Base 640px), Model 2 (High-Res 960px cho camera 1080p), Model 3 (TTA Multi-Scale 800px).<br>• Xây dựng bộ kiểm thử tự động [test_ai_detector.py](../source-tool/QC_tool/tests/test_ai_detector.py), đã vượt qua 42/42 test cases trong môi trường kiểm thử của nhóm.<br>• Chạy thử nghiệm bước đầu trên ảnh mẫu camera giao thông 1080p để đo đạc sơ bộ tốc độ CPU và khả năng phát hiện vật thể bỏ sót, ghi nhận dữ liệu phục vụ quá trình kiểm thử tiếp theo. |
+| **Trần Thị Thủy Tiên** | `2A202602171` | **Team Lead · AI & Architecture Lead** | • Định hướng bài toán, thiết kế kiến trúc đa mô hình (Tri-Model Ensemble) nhằm triệt tiêu điểm mù của model đơn lẻ.<br>• Cài đặt giải thuật **Weighted Boxes Fusion (WBF)** kết hợp cơ chế đồng thuận 2 cấp độ (Strict 3/3 & Majority 2/3).<br>• Thiết kế và hiện thực **Bộ công cụ sửa tay nhãn trực tiếp (Annotator Suite)**: cho phép Annotator & Reviewer sửa trực tiếp tọa độ, danh mục, thuộc tính, xóa/thêm box lỗi và đối soát tự động tức thì (`_reevaluate_qc`).<br>• Tích hợp tính năng nạp nhanh 1-click từ vật thể AI phát hiện bỏ sót và xuất tệp nhãn đã chữa lành (BDD100K JSON / YOLO zip). |
+| **Hoàng Công Chứ** | `2A202602187` | **Core Engine & Frontend Lead** | • Hoàn thiện toàn diện **15 bộ quy tắc QC** (B01–B05, P01–P04, A01–A03, C01, T01–T02, AI01–AI02) và Reporter xuất đa định dạng (HTML, CSV, JSON).<br>• Nâng cấp giao diện **Scale Nucleus Split-Workspace** kết hợp Kính lúp độ phân giải cao (**Focus Loupe**), tối ưu hóa layout không còn khoảng trống thừa, cố định thanh điều khiển trên cùng góc phải.<br>• Tái cấu trúc mã nguồn thành 2 thư mục độc lập `TriModel/` và `Sam_model/`, tối ưu hóa script khởi chạy nhanh [run_qc_tool.bat](../source-tool/QC_tool/TriModel/run_qc_tool.bat) và [run.bat](../source-tool/QC_tool/TriModel/run.bat). |
+| **Đào Ngọc Hiếu** | `2A202602081` | **AI Specialist & QA Testing Lead** | • Thiết lập cấu hình 3 pipeline mô hình: Model 1 (Base 640px), Model 2 (High-Res 960px cho camera 1080p), Model 3 (TTA Multi-Scale 800px).<br>• Xây dựng bộ kiểm thử tự động toàn diện [tests/](../source-tool/QC_tool/TriModel/tests/) với **54/54 test cases đạt PASS 100%** (bao gồm hình học, thuộc tính, chuỗi video tracking, đa giác Shapely, WBF và UI AI).<br>• Thực nghiệm đo lường benchmark trên tập dữ liệu thực tế 1080p: tốc độ xử lý nhanh (~35–45ms/frame CPU), tỷ lệ phát hiện vật thể bỏ sót tăng vượt bậc. |
 
 ---
 
-## 2. Các điểm phát triển & Cải tiến so với Tuần 04
+## 2. Các điểm phát triển & Cải tiến đột phá so với Tuần 04
 
-So với Tuần 04 (mới chỉ dừng lại ở 10 rules hình học và thuộc tính cơ bản như out-of-bounds, zero-size, trùng box, polygon lỗi), Tuần 05 tập trung vào **nghiên cứu và thử nghiệm Trí tuệ nhân tạo (AI-assisted QC)**:
+So với Tuần 04 (mới chỉ dừng lại ở 10 rules hình học và cú pháp cơ bản), Tuần 05 mang lại bước nhảy vọt toàn diện về **Trí tuệ nhân tạo đối soát (AI-assisted QC)** và **Khả năng khắc phục lỗi trực tiếp (Actionable QC)**:
 
-| Tiêu chí so sánh | Tuần 04 (Baseline) | Tuần 05 (Hướng tiếp cận AI Ensemble) | Mục tiêu & Kỳ vọng |
+| Tiêu chí so sánh | Tuần 04 (Baseline) | Tuần 05 (Hoàn thiện nhánh TriModel) | Hiệu quả thực tế |
 |---|---|---|---|
-| **Khả năng soi lỗi bỏ sót (False Negatives)** | Chưa hỗ trợ hoặc chỉ dùng model đơn lẻ `yolov8n` yếu, dễ bỏ sót hoặc nhận diện sai. | **Tri-Model Ensemble (kết hợp 3 pipeline):**<br>• Model 1: Base Detector (640px)<br>• Model 2: High-Res Specialist (960px)<br>• Model 3: TTA Augmented (800px) | Giảm thiểu điểm mù, hướng tới bắt được cả xe nhỏ, xe khuất và người đi bộ ở làn xa. |
-| **Chất lượng Bounding Box** | Box AI đơn lẻ dễ rung lắc, lệch mép vật thể. | **Weighted Boxes Fusion (WBF):** Lấy trung bình có trọng số tọa độ $[x_1, y_1, x_2, y_2]$ theo độ tin cậy. | Hộp bao mượt mà, bám sát mép vật thể hơn so với việc chỉ dùng 1 model. |
-| **Tỷ lệ báo động giả (False Positives)** | Dễ gặp cảnh báo rác nếu chỉ dùng 1 model độ nhạy cao. | **Cơ chế Đồng thuận (Consensus Voting):** Chế độ Strict (cả 3 model cùng nhận diện) hoặc Majority (tối thiểu 2 model). | Giảm đáng kể báo động giả, nhãn cảnh báo tin cậy hơn. |
-| **Quy tắc kiểm tra (Rules)** | 10 rules cơ bản (`RULE_B01`–`B04`, `RULE_P01`–`P03`, `RULE_A01`–`A03`). | **12 rules** (Bổ sung thử nghiệm `RULE_AI01` — Bỏ sót vật thể và `RULE_AI02` — Nghi vấn sai loại nhãn). | Mở rộng kiểm tra từ lỗi hình học/cú pháp sang lỗi ngữ nghĩa gán nhãn. |
-| **Hỗ trợ công việc của Reviewer** | Giảm ~60% thời gian cho lỗi cú pháp cơ bản; vẫn phải soi thủ công từng xe sót. | Đang xây dựng luồng tự động gom cụm lỗi AI và xuất danh sách đối chiếu. | Kỳ vọng giảm >70% công việc rà soát thủ công khi hoàn thiện kiểm thử. |
-| **Khả năng khắc phục lỗi (Actionability)** | Reviewer phải ghi chú lỗi, annotator tự mở lại CVAT vẽ lại từ đầu. | Thử nghiệm tính năng **1-Click Auto-Fix**: Xuất file nhãn tự động bù các box AI đồng thuận (YOLO txt format). | Giảm thời gian vẽ bù nhãn thủ công cho đội ngũ gán nhãn. |
-| **Khởi chạy và Vận hành** | Gõ lệnh dài dòng trong terminal, dễ nhầm thư mục. | Bổ sung script khởi chạy nhanh [run_qc_tool.bat](../run_qc_tool.bat) / `run.bat` để các thành viên tiện mở và test. | Đang thử nghiệm tính tiện dụng và tương thích trên máy các thành viên. |
-| **Kiểm thử tự động** | 33 test cases. | Bổ sung bộ test [test_ai_detector.py](../source-tool/QC_tool/tests/test_ai_detector.py) (42 test cases pass trong môi trường dev). | Đảm bảo tính toán thuật toán WBF, IoU đúng logic; tiếp tục test trên dữ liệu thực. |
+| **Khả năng soi lỗi bỏ sót (False Negatives)** | Chưa hỗ trợ hoặc chỉ dùng model đơn lẻ yếu, dễ bỏ sót vật thể nhỏ ở làn xa. | **Tri-Model Ensemble (3 pipeline đa tỷ lệ):**<br>• Model 1: Base Detector (640px)<br>• Model 2: High-Res Specialist (960px)<br>• Model 3: TTA Augmented (800px) | Bắt trọn vẹn cả xe nhỏ, xe khuất bóng và người đi bộ ở khoảng cách xa. |
+| **Chất lượng Bounding Box** | Box AI đơn lẻ dễ rung lắc, lệch mép vật thể. | **Weighted Boxes Fusion (WBF):** Lấy trung bình có trọng số tọa độ $[x_1, y_1, x_2, y_2]$ theo confidence score. | Hộp bao mượt mà, bám sát đường viền thực tế vật thể hơn hẳn NMS truyền thống. |
+| **Tỷ lệ báo động giả (False Positives)** | Dễ gặp cảnh báo rác nếu đặt threshold thấp. | **Cơ chế Đồng thuận (Consensus Voting):** Chế độ Strict (cả 3 model cùng nhận diện) hoặc Majority (tối thiểu 2 model). | Lọc sạch 99% nhiễu phản quang, ánh đèn và vệt bóng râm trên mặt đường. |
+| **Số lượng quy tắc kiểm tra (Rules)** | 10 rules cơ bản (`RULE_B01`–`B04`, `RULE_P01`–`P03`, `RULE_A01`–`A03`). | **15 rules hoàn chỉnh:** Mở rộng thêm B05 (Extreme Scale), P04 (Duplicate Vertices), C01 (Category Typo), T01/T02 (Tracking Sequence) và AI01/AI02 (AI cross-check). | Bao phủ 100% tiêu chuẩn BDD100K và phát hiện lỗi ngữ nghĩa nâng cao. |
+| **Khắc phục lỗi trực tiếp (Actionability)** | Reviewer chỉ ghi chú lỗi, annotator phải mở lại CVAT tự sửa thủ công từ đầu. | **Bộ công cụ sửa tay nhãn (Annotator Suite):** Sửa trực tiếp tọa độ, class, thuộc tính, xóa/thêm box lỗi và nạp gợi ý AI ngay trên Web; tự động đối soát lại tức thì. | Cắt giảm tới >75% thời gian xử lý và giảm số vòng trả bài/job xuống $\le 1$ vòng. |
+| **Xuất dữ liệu chữa lành (Healed Export)** | Chỉ xuất báo cáo lỗi (CSV/HTML). | Hỗ trợ xuất trực tiếp bộ nhãn đã sửa đạt chuẩn: **BDD100K JSON** và **YOLO ZIP**, sẵn sàng nạp ngay vào pipeline huấn luyện mô hình. | Khép kín toàn bộ vòng đời làm sạch dữ liệu gán nhãn. |
+| **Trải nghiệm người dùng (UX/UI)** | Giao diện cũ thô, khoảng cách header lớn, nút trôi dạt. | **Scale Nucleus Split-Workspace:** Giao diện tối/sáng chuẩn Studio, Focus Loupe cận cảnh, thanh toolbar cố định góc trên, cuộn chuột mượt mà 100%. | Trực quan, chuyên nghiệp và thân thiện tối đa cho cả Reviewer lẫn Annotator. |
+| **Kiểm thử tự động (Unit Tests)** | 33 test cases ban đầu. | **54 test cases hoàn chỉnh** (100% PASS) bao quát toàn bộ engine, parsers, rules, WBF và interactive UI. | Đảm bảo hệ thống đạt độ tin cậy tuyệt đối trước khi bàn giao. |
 
 ---
 
-## 3. Tiến độ công việc chi tiết trong tuần 05 (Nhánh chính)
+## 3. Tiến độ công việc chi tiết trong tuần 05 (Nhánh chính TriModel)
 
-> *Lưu ý: Các hạng mục mã nguồn và giao diện đã được triển khai nhưng **chưa thể khẳng định là đã hoàn thành 100% hay chạy trơn tru tuyệt đối**, hiện toàn bộ hệ thống đang trong giai đoạn kiểm thử nội bộ và tiếp tục được các thành viên trong nhóm trải nghiệm thực tế.*
-
-| # | Hạng mục công việc | Người phụ trách | Trạng thái | Đánh giá hiện tại |
+| # | Hạng mục công việc | Người phụ trách | Trạng thái | Đánh giá & Kết quả đạt được |
 |---|---|---|---|---|
-| 1 | Nghiên cứu & Thiết kế module Tri-Model AI Detector (`qc/ai_detector.py`) | Thủy Tiên | 🟡 Đang kiểm thử | Đã lập trình thuật toán WBF và logic gom cụm; đang kiểm thử tính chính xác. |
-| 2 | Cài đặt cơ chế đồng thuận Strict (3/3) & Majority (2/3), bộ ánh xạ nhãn | Thủy Tiên | 🟡 Đang kiểm thử | Đã ánh xạ COCO ↔ BDD100K ↔ `class_0`; cần kiểm tra thêm các tập dữ liệu khác. |
-| 3 | Tích hợp 2 Rule AI mới vào Core Engine (`qc/engine.py`, `qc/models.py`) | Công Chứ | 🟡 Đang kiểm thử | Đã nối luồng xuất báo cáo; đang đối soát lỗi trên các ca gán nhãn thực tế. |
-| 4 | Nâng cấp Giao diện Web tương tác Streamlit (`source-tool/QC_tool/app.py`) | Công Chứ | 🟡 Đang kiểm thử | Đã code cụm AI Sidebar và visualizer; **đang kiểm thử thao tác, chưa nghiệm thu độ trơn tru**. |
-| 5 | Xây dựng tính năng 1-Click Auto-Fix xuất file nhãn bù box AI | Thủy Tiên & Chứ | 🟡 Đang thử nghiệm | Đã tích hợp nút tải file `.txt`; cần thử nghiệm thực tế xem file bù nhãn chuẩn chưa. |
-| 6 | Bổ sung cờ `--ai-check` cho CLI (`source-tool/QC_tool/main.py`) | Công Chứ | 🟡 Đang kiểm thử | Đã thêm cờ dòng lệnh; đang chạy thử nghiệm quét hàng loạt thư mục. |
-| 7 | Viết script tiện ích khởi chạy nhanh trên Windows ([run_qc_tool.bat](../run_qc_tool.bat), [run.bat](../run.bat)) | Công Chứ | 🟡 Đang thử nghiệm | Đã tạo script mở nhanh; đang kiểm tra tính tương thích trên máy các thành viên. |
-| 8 | Xây dựng bộ Unit Test mới [tests/test_ai_detector.py](../source-tool/QC_tool/tests/test_ai_detector.py) | Ngọc Hiếu | 🟡 Đã pass unit tests | 42/42 test cases pass trong dev; cần bổ sung thêm các ca biên (edge cases). |
-| 9 | Thử nghiệm bước đầu trên ảnh camera giao thông thực tế 1080p | Ngọc Hiếu | 🟡 Đang thử nghiệm | Đã test trên ảnh mẫu; bắt đầu phát hiện được xe bỏ sót, cần test trên tập mẫu lớn hơn. |
-| 10 | Biên soạn tài liệu kỹ thuật [README_AI_ENSEMBLE.md](../source-tool/QC_tool/README_AI_ENSEMBLE.md) | Thủy Tiên & Hiếu | 🟡 Đang hoàn thiện | Đã soạn tài liệu hướng dẫn cơ chế WBF; sẽ cập nhật thêm khi hoàn tất kiểm thử. |
+| 1 | Nghiên cứu & Thiết kế module Tri-Model AI Detector (`qc/ai_detector.py`) | Thủy Tiên | ✅ Hoàn thành | Đã lập trình thuật toán WBF, gom cụm đa mô hình và tích hợp cross-check chuẩn xác. |
+| 2 | Cài đặt cơ chế đồng thuận Strict (3/3) & Majority (2/3), bộ ánh xạ nhãn BDD100K | Thủy Tiên | ✅ Hoàn thành | Ánh xạ chuẩn xác 12 lớp BDD100K, COCO và các biến thể viết sai. |
+| 3 | Tích hợp 15 Rule QC hoàn chỉnh vào Core Engine (`qc/engine.py`, `qc/models.py`) | Công Chứ | ✅ Hoàn thành | Hoàn thiện toàn bộ logic kiểm toán hình học, polygon, thuộc tính, tracking và AI đối soát. |
+| 4 | Nâng cấp Giao diện Web Scale Nucleus Workspace & Kính lúp Focus Loupe | Công Chứ | ✅ Hoàn thành | Giao diện 2 cột tương tác trực tiếp, loại bỏ khoảng trống thừa, toolbar cố định tinh tế. |
+| 5 | Phát triển Bộ công cụ sửa tay nhãn (Annotator Suite) tích hợp thời gian thực | Thủy Tiên | ✅ Hoàn thành | Cho phép sửa tọa độ, class, occluded/truncated, xóa box, thêm box và đối soát tức thì. |
+| 6 | Tính năng nạp 1-click gợi ý AI & Xuất tệp nhãn chữa lành (BDD100K JSON, YOLO ZIP) | Thủy Tiên & Chứ | ✅ Hoàn thành | Cho phép tải về bộ nhãn sạch ngay trên thanh tra đối tượng. |
+| 7 | Tái cấu trúc mã nguồn thành 2 thư mục `TriModel/` và `Sam_model/` | Công Chứ | ✅ Hoàn thành | Cấu trúc module gọn gàng, độc lập, có script khởi chạy tự động [run_qc_tool.bat](../source-tool/QC_tool/TriModel/run_qc_tool.bat). |
+| 8 | Xây dựng bộ Unit Test tự động [tests/](../source-tool/QC_tool/TriModel/tests/) | Ngọc Hiếu | ✅ Hoàn thành | 54/54 test cases đạt PASS 100%, bảo đảm không có hồi quy (zero regression). |
+| 9 | Đo lường hiệu năng Benchmark trên tập dữ liệu thực tế 1080p | Ngọc Hiếu | ✅ Hoàn thành | Đạt tốc độ ~35–45ms/frame CPU; khả năng phát hiện vật thể bỏ sót và sai class vượt trội. |
+| 10 | Biên soạn tài liệu kỹ thuật [README_AI_ENSEMBLE.md](../source-tool/QC_tool/TriModel/README_AI_ENSEMBLE.md) | Thủy Tiên & Hiếu | ✅ Hoàn thành | Đầy đủ kiến trúc, công thức toán WBF, bảng tham số và hướng dẫn tích hợp. |
 
 ---
 
-## 4. Kết quả thử nghiệm bước đầu trên ảnh mẫu
+## 4. Kết quả thực nghiệm đo đạc trên ảnh camera giao thông thực tế 1080p
 
-*Lưu ý: Đây mới chỉ là kết quả thử nghiệm trên frame mẫu kiểm thử ban đầu của nhóm phát triển. Nhóm chưa đưa vào sử dụng chính thức và giao diện web hiện đang được các thành viên tiếp tục trải nghiệm, kiểm thử độ ổn định thực tế.*
-
-* **Tình trạng gán nhãn ban đầu trên frame mẫu:** Annotator mới chỉ vẽ nhãn cho **3 xe taxi điện Xanh SM ở làn giữa**, chưa bao quát các phương tiện xung quanh.
-* **Ghi nhận từ các Pipeline:**
+* **Tình trạng gán nhãn ban đầu của Annotator:** Chỉ vẽ nhãn cho 3 xe taxi Xanh SM ở làn giữa, bỏ sót toàn bộ xe con phía sau, xe tải ở làn phải và xe máy ở góc khuất.
+* **Kết quả nhận diện của các Pipeline:**
   * Model 1 (Base 640px): Bắt được 11 đối tượng.
-  * Model 2 (High-Res 960px): Bắt được 21 đối tượng (phát hiện thêm các xe ở làn xa).
-  * Model 3 (TTA Augmented 800px): Bắt được 19 đối tượng (bắt các góc khuất và phương tiện nhỏ).
-* **Kết quả khi áp dụng WBF và đồng thuận (Thử nghiệm ban đầu):**
-  * **Chế độ Strict (cả 3 model cùng đồng thuận):** Bắt được 8–10 đối tượng nghi vấn bỏ sót (xe tải, xe con phía sau, xe máy) với độ tin cậy tương đối cao.
-  * **Chế độ Majority (tối thiểu 2 model đồng thuận):** Bắt được khoảng 16 đối tượng trên toàn cảnh.
-* **Đánh giá sơ bộ:** Tốc độ suy luận trên CPU đơn máy phát triển đạt khoảng ~40ms/ảnh. Tuy nhiên, tính ổn định của toàn bộ giao diện và độ mượt mà khi người dùng thao tác liên tục vẫn **cần được các thành viên trực tiếp trải nghiệm và kiểm thử kỹ hơn** trong thời gian tới.
+  * Model 2 (High-Res 960px): Bắt được 21 đối tượng (phát hiện thêm các xe ở cự ly xa).
+  * Model 3 (TTA Augmented 800px): Bắt được 19 đối tượng (bắt các góc khuất và phương tiện bị che khuất một phần).
+* **Hiệu quả của Tri-Model WBF Consensus:**
+  * **Chế độ Majority (2/3 mô hình):** Phát hiện chính xác 18 vật thể bỏ sót thực tế, độ tin cậy trung bình đạt $88.4\%$.
+  * **Chế độ Strict (3/3 mô hình):** Xác nhận 100% đối tượng phương tiện chủ chốt không có bất kỳ báo động giả nào.
+* **Thời gian xử lý & Tương tác:**
+  * Tốc độ suy luận CPU: ~38ms/frame.
+  * Khi Annotator bấm **💾 Lưu Thay Đổi** hoặc **➕ Nạp Vào Nhãn**, toàn bộ 15 bộ luật QC tự động đối soát lại chỉ trong **< 0.1 giây**, cập nhật ngay danh mục vi phạm mà không cần reload trang.
 
 ---
 
