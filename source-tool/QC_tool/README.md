@@ -5,6 +5,26 @@
 
 ---
 
+## Cấu trúc 2 Phân hệ Công cụ (Two Tool Branches)
+
+Thư mục `QC_tool` được phân tách thành 2 nhánh nghiên cứu & phát triển độc lập theo phân công nhóm:
+
+```text
+source-tool/QC_tool/
+├── TriModel/                 # Phân hệ QC Tool Nâng Cao & Tri-Model AI Ensemble (Tiên - Chứ - Hiếu)
+│   ├── app.py                # Giao diện Web Streamlit Studio (Focus Loupe, Annotator Suite sửa tay)
+│   ├── main.py               # Dòng lệnh CLI kiểm tra hàng loạt
+│   ├── qc/                   # 15 bộ quy tắc QC, Tri-Model AI Detector, WBF, Parsers
+│   ├── ui/                   # Giao diện modular, đa ngôn ngữ Anh-Việt, Canvas kính lúp
+│   ├── tests/                # Bộ kiểm thử tự động 54 test cases
+│   └── data_sample/          # Dữ liệu mẫu kiểm định
+└── Sam_model/                # Phân hệ nghiên cứu Phân đoạn SAM-2 (Thắng - Đức)
+    ├── sam2_model.ipynb      # Notebook Colab thử nghiệm Zero-shot OwlViT + SAM-2
+    └── xanh_sm_night.zip     # Tập dữ liệu ảnh ban đêm Xanh SM
+```
+
+---
+
 ## 1. Thông tin đề tài
 
 - **Mã đề tài:** `N2-04A` (Nhóm 2 – Giữ chất lượng)
