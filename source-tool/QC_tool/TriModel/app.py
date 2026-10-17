@@ -73,15 +73,55 @@ def main():
         st.session_state["qc_ai_missed_cache"] = {}
         st.rerun()
 
+    from ui.i18n import t, get_current_lang, set_current_lang
+    curr_lang = get_current_lang()
+
+    # 5.5. Thanh tiện ích trên cùng: Ngôn ngữ & Chế độ Sáng / Tối (Top Control Bar)
+    top_c1, top_c2, top_c3 = st.columns([5.2, 2.4, 2.4])
+    with top_c1:
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 8px; padding-top: 5px;">
+            <span style="font-size: 1.15rem;">🛡️</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--val-cyan); letter-spacing: 0.04em;">
+                {'BDD100K HỆ THỐNG KIỂM ĐỊNH // N2-04A' if curr_lang == 'vi' else 'BDD100K QC AUDIT PLATFORM // N2-04A'}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with top_c2:
+        top_lang = st.radio(
+            "Language",
+            options=["Tiếng Việt 🇻🇳", "English 🇺🇸"],
+            index=0 if curr_lang == "vi" else 1,
+            horizontal=True,
+            key="top_bar_lang_radio",
+            label_visibility="collapsed",
+        )
+        new_lang = "vi" if "Tiếng Việt" in top_lang else "en"
+        if new_lang != curr_lang:
+            set_current_lang(new_lang)
+            st.rerun()
+
+    with top_c3:
+        top_theme = st.radio(
+            "Theme",
+            options=["🌙 Nền Tối", "☀️ Nền Sáng"] if curr_lang == "vi" else ["🌙 Dark", "☀️ Light"],
+            index=0 if is_dark else 1,
+            horizontal=True,
+            key="top_bar_theme_radio",
+            label_visibility="collapsed",
+        )
+        new_is_dark = ("Tối" in top_theme or "Dark" in top_theme)
+        if new_is_dark != is_dark:
+            st.session_state["global_theme_mode"] = "dark" if new_is_dark else "light"
+            st.rerun()
+
     # 6. Render Header chính
     render_header(
         total_rules_active=total_rules_active,
         ai_model=ai_model,
         enable_ai_check=enable_ai_check,
     )
-
-    from ui.i18n import t, get_current_lang
-    curr_lang = get_current_lang()
 
     # Kiểm tra nguồn dữ liệu
     if not all_sources:
