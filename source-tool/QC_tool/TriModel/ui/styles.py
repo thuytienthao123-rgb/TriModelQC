@@ -756,6 +756,105 @@ def apply_custom_css(is_dark: bool = True):
                 if (floatBtn) {
                     floatBtn.remove();
                 }
+
+                // Tự động gắn thanh kéo độ rộng mép phải sidebar
+                initSidebarResizer();
+            } catch(e) {}
+        }
+
+        function initSidebarResizer() {
+            try {
+                const pWin = window.parent;
+                const pDoc = pWin.document;
+                const sidebar = pDoc.querySelector('section[data-testid="stSidebar"]');
+                if (!sidebar) return;
+
+                let resizer = pDoc.getElementById('sidebar-drag-resizer');
+                if (!resizer) {
+                    resizer = pDoc.createElement('div');
+                    resizer.id = 'sidebar-drag-resizer';
+                    resizer.title = 'Kéo mép này để chỉnh độ rộng sidebar (Double click để về mặc định)';
+                    resizer.style.position = 'absolute';
+                    resizer.style.top = '0';
+                    resizer.style.right = '-3px';
+                    resizer.style.width = '7px';
+                    resizer.style.height = '100%';
+                    resizer.style.cursor = 'col-resize';
+                    resizer.style.zIndex = '999999';
+                    resizer.style.backgroundColor = 'transparent';
+                    resizer.style.transition = 'background-color 0.15s ease';
+
+                    resizer.addEventListener('mouseenter', () => {
+                        resizer.style.backgroundColor = 'rgba(0, 229, 255, 0.45)';
+                    });
+                    resizer.addEventListener('mouseleave', () => {
+                        if (!resizer.dataset.dragging) {
+                            resizer.style.backgroundColor = 'transparent';
+                        }
+                    });
+
+                    let isDragging = false;
+                    let startX = 0;
+                    let startWidth = 0;
+
+                    resizer.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        resizer.dataset.dragging = 'true';
+                        startX = e.clientX;
+                        startWidth = sidebar.getBoundingClientRect().width;
+                        resizer.style.backgroundColor = '#00e5ff';
+                        pDoc.body.style.cursor = 'col-resize';
+                        pDoc.body.style.userSelect = 'none';
+                        e.preventDefault();
+                    });
+
+                    pDoc.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        const delta = e.clientX - startX;
+                        const newWidth = Math.max(220, Math.min(680, startWidth + delta));
+                        sidebar.style.width = newWidth + 'px';
+                        sidebar.style.minWidth = newWidth + 'px';
+                        sidebar.style.maxWidth = newWidth + 'px';
+                        try {
+                            localStorage.setItem('trimodel_sidebar_w', newWidth);
+                        } catch(err) {}
+                    });
+
+                    pDoc.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            delete resizer.dataset.dragging;
+                            resizer.style.backgroundColor = 'transparent';
+                            pDoc.body.style.cursor = '';
+                            pDoc.body.style.userSelect = '';
+                        }
+                    });
+
+                    resizer.addEventListener('dblclick', () => {
+                        sidebar.style.width = '';
+                        sidebar.style.minWidth = '';
+                        sidebar.style.maxWidth = '';
+                        try {
+                            localStorage.removeItem('trimodel_sidebar_w');
+                        } catch(err) {}
+                    });
+
+                    sidebar.style.position = 'relative';
+                    sidebar.appendChild(resizer);
+                }
+
+                // Khôi phục kích thước người dùng đã lưu
+                try {
+                    const savedW = localStorage.getItem('trimodel_sidebar_w');
+                    if (savedW) {
+                        const parsed = parseInt(savedW, 10);
+                        if (parsed >= 220 && parsed <= 680) {
+                            sidebar.style.width = parsed + 'px';
+                            sidebar.style.minWidth = parsed + 'px';
+                            sidebar.style.maxWidth = parsed + 'px';
+                        }
+                    }
+                } catch(err) {}
             } catch(e) {}
         }
 
