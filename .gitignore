@@ -11,3 +11,14 @@ __pycache__/
 *.log
 *.pt
 KICH-BAN-*.md
+*kich-ban*
+*thuyet-trinh*
+*avatar*
+*banner*
+create_project_avatar.py
+*.mp4
+*.mov
+*.avi
+*.webm
+*.mkv
+THUMBNAIL-*.md

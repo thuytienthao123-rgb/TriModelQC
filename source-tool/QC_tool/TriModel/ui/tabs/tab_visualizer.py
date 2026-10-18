@@ -319,20 +319,21 @@ def render_tab_visualizer(
 
             # Scale Nucleus Frame Status Header & Zoom Controls Toolbar
             ai_pill = f'<span style="background: rgba(236,72,153,0.15); color: #ec4899; border: 1px solid rgba(236,72,153,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">🤖 {len(missed_objects)} {lbl_ai_missed}</span>' if (enable_ai_check and missed_objects) else ''
-            st.markdown(f"""
-            <div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #f8fafc;">
-                    FRAME: <strong style="color: #00e5ff;">{selected_frame_name}</strong>
-                    <span style="color: #64748b; margin-left: 8px;">({selected_frame.width}×{selected_frame.height}px)</span>
-                </div>
-                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                    <span style="background: rgba(0,229,255,0.12); color: #00e5ff; border: 1px solid rgba(0,229,255,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">📦 {len(selected_frame.objects)} {lbl_instances}</span>
-                    <span style="background: rgba(244,63,94,0.12); color: #f43f5e; border: 1px solid rgba(244,63,94,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">🔴 {n_f_err} {lbl_defects}</span>
-                    <span style="background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">🟡 {n_f_warn} {lbl_warn}</span>
-                    {ai_pill}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="background: #0f1624; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">'
+                f'<div style="font-family: \'JetBrains Mono\', monospace; font-size: 0.82rem; color: #f8fafc;">'
+                f'FRAME: <strong style="color: #00e5ff;">{selected_frame_name}</strong> '
+                f'<span style="color: #64748b; margin-left: 8px;">({selected_frame.width}×{selected_frame.height}px)</span>'
+                f'</div>'
+                f'<div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">'
+                f'<span style="background: rgba(0,229,255,0.12); color: #00e5ff; border: 1px solid rgba(0,229,255,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">📦 {len(selected_frame.objects)} {lbl_instances}</span>'
+                f'<span style="background: rgba(244,63,94,0.12); color: #f43f5e; border: 1px solid rgba(244,63,94,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">🔴 {n_f_err} {lbl_defects}</span>'
+                f'<span style="background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">🟡 {n_f_warn} {lbl_warn}</span>'
+                f'{ai_pill}'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
             # Matplotlib Canvas styled for Scale Nucleus
             fig, ax = plt.subplots(figsize=(10.5, 6.2), dpi=105)

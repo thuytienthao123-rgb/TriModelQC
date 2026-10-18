@@ -50,9 +50,11 @@ def find_matching_image(frame_name: str, image_map: Dict[str, Any]) -> Optional[
 
 
 def load_image(img_ref: Any) -> Optional[Image.Image]:
-    """Mở ảnh an toàn từ chuỗi đường dẫn, Path, hoặc UploadedFile Streamlit."""
+    """Mở ảnh an toàn từ PIL.Image, chuỗi đường dẫn, Path, hoặc UploadedFile Streamlit."""
     if img_ref is None:
         return None
+    if isinstance(img_ref, Image.Image):
+        return img_ref
     try:
         if isinstance(img_ref, (str, Path)):
             p = Path(img_ref)

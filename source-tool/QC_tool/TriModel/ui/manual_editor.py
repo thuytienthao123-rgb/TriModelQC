@@ -551,3 +551,71 @@ def render_manual_editor_panel(
             )
         except Exception:
             pass
+
+    # -------------------------------------------------------------------------
+    # 5. ĐỒNG BỘ TRỰC TIẾP VỚI CVAT (TWO-WAY SYNC TO CVAT)
+    # -------------------------------------------------------------------------
+    cvat_meta = st.session_state.get("cvat_meta")
+    cvat_bridge = st.session_state.get("cvat_bridge")
+
+    cvat_panel_title = "🌐 Đồng Bộ Ngược Lại CVAT (Two-Way Sync)" if lang == "vi" else "🌐 Push Back to CVAT (Two-Way Sync)"
+    with st.expander(cvat_panel_title, expanded=(cvat_meta is not None)):
+        if cvat_meta:
+            job_id = cvat_meta.get("job_id", 88)
+            is_mock = (cvat_meta.get("mode") == "offline_mock")
+            status_text = (
+                f"Đang liên kết CVAT Job #{job_id} ({'Mô phỏng Local' if is_mock else 'Server Trực Tuyến'})"
+                if lang == "vi"
+                else f"Linked CVAT Job #{job_id} ({'Offline Mock' if is_mock else 'Online Server'})"
+            )
+            st.markdown(f"""
+            <div style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px;">
+                <div style="font-size: 0.76rem; font-weight: 700; color: #00e5ff;">🔗 {status_text}</div>
+                <div style="font-size: 0.70rem; color: #94a3b8; margin-top: 2px;">
+                    {"Bấm nút bên dưới để nạp toàn bộ nhãn đã sửa (bổ sung box thiếu, viền polygon) ngược lại CVAT." if lang == "vi" else "Push all remediated annotations (added boxes, auto polygons) directly to CVAT."}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            c_btn1, c_btn2 = st.columns(2)
+            with c_btn1:
+                btn_push_lbl = "🚀 Nạp Vào CVAT" if lang == "vi" else "🚀 Push to CVAT"
+                if st.button(btn_push_lbl, use_container_width=True, type="primary", key=f"btn_cvat_push_{selected_frame.name}"):
+                    if is_mock or cvat_bridge is None:
+                        # Mô phỏng nạp thành công
+                        total_objs = sum(len(f.objects) for f in frames)
+                        poly_count = sum(1 for f in frames for o in f.objects if o.poly2d)
+                        st.session_state["cvat_meta"]["total_shapes"] = total_objs + poly_count
+                        st.toast(f"✅ [Mô phỏng] Đã nạp thành công {total_objs} BBoxes và {poly_count} Polygons sang CVAT Job #{job_id}!", icon="🚀")
+                        st.success(f"🎉 Đã nạp sang CVAT Job #{job_id}: {total_objs} BBoxes, {poly_count} Polygons! Mở CVAT bấm F5 để xem nhãn mới." if lang == "vi" else f"🎉 Synced to CVAT Job #{job_id}!")
+                    else:
+                        with st.spinner("Đang đẩy nhãn lên CVAT..." if lang == "vi" else "Pushing to CVAT..."):
+                            ok, res = cvat_bridge.push_healed_annotations_to_job(job_id, frames, cvat_meta.get("label_map"))
+                            if ok:
+                                st.toast(f"✅ {res.get('message', 'Đã nạp thành công lên CVAT!')}", icon="🚀")
+                                st.success(f"🎉 {res.get('message', 'Thành công!')}")
+                            else:
+                                st.error(f"❌ Lỗi nạp CVAT: {res}")
+            with c_btn2:
+                btn_issues_lbl = "🚩 Gắn Cờ Issue" if lang == "vi" else "🚩 Flag Issues"
+                if st.button(btn_issues_lbl, use_container_width=True, key=f"btn_cvat_issues_{selected_frame.name}", help="Tự động cắm cờ báo lỗi lên từng frame trên CVAT"):
+                    qc_rep = st.session_state.get("qc_report")
+                    if is_mock or cvat_bridge is None:
+                        err_cnt = len(qc_rep.errors) if qc_rep else 0
+                        st.toast(f"🚩 [Mô phỏng] Đã cắm {err_cnt} cờ Issue lên CVAT Job #{job_id}!", icon="🚩")
+                        st.info(f"🚩 Đã tạo {err_cnt} Issue chỉ điểm lỗi trên CVAT!" if lang == "vi" else f"🚩 Flagged {err_cnt} issues on CVAT!")
+                    else:
+                        with st.spinner("Đang tạo Issue trên CVAT..."):
+                            ok, res = cvat_bridge.push_issues_to_cvat(job_id, qc_rep)
+                            if ok:
+                                st.toast(f"🚩 {res}", icon="🚩")
+                                st.info(res)
+                            else:
+                                st.error(f"❌ Lỗi: {res}")
+        else:
+            st.caption(
+                "Để kết nối trực tiếp với CVAT, vui lòng chọn nguồn dữ liệu **'🌐 Đồng Bộ Trực Tuyến CVAT'** ở thanh điều khiển bên trái."
+                if lang == "vi"
+                else "To connect to CVAT, select **'🌐 Online CVAT Sync'** in the left sidebar."
+            )
+

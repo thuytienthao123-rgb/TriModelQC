@@ -174,6 +174,7 @@ def main():
         st.session_state["qc_frames"] = all_frames_run
         st.session_state["qc_sources"] = all_sources
         st.session_state["qc_rules_snapshot"] = active_rules
+        st.session_state["qc_active_seq_rules"] = active_seq_rules
         st.session_state["qc_display_name"] = file_display_name
         toast_msg = (
             f"✅ Hoàn thành quét QC trong {_elapsed:.2f}s — phát hiện {len(_report.errors)} vấn đề"

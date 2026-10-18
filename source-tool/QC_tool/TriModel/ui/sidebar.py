@@ -12,6 +12,7 @@ from qc.rules.sequence_rules import ALL_SEQUENCE_RULES
 
 from ui.io_utils import find_matching_image, read_file_bytes, scan_folder
 from ui.i18n import t, get_current_lang, set_current_lang
+from ui.cvat_bridge import CVATBridge, create_cvat_mock_session
 
 
 def render_sidebar(ai_model: Any) -> Dict[str, Any]:
@@ -71,9 +72,11 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
     st.sidebar.markdown("---")
     st.sidebar.subheader(t("sec_source"))
 
+    opt_cvat = "🌐 Đồng Bộ Trực Tuyến CVAT" if curr_lang == "vi" else "🌐 Online CVAT Sync"
     source_options = [
         t("opt_upload"),
         t("opt_folder"),
+        opt_cvat,
     ]
     data_source = st.sidebar.radio(
         t("source_mode"),
@@ -125,6 +128,13 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
             uploaded_image_map[Path(_img_f.name).stem] = _img_f
         with col_img_info:
             st.caption(t("images_loaded_msg", count=len(uploaded_images_raw)))
+
+    # Tự động gộp bộ ảnh đã nạp từ CVAT hoặc Mock Session (nếu có) để AI và Canvas sử dụng
+    cvat_imgs = st.session_state.get("cvat_image_map", {})
+    if cvat_imgs:
+        for k, v in cvat_imgs.items():
+            if k not in uploaded_image_map:
+                uploaded_image_map[k] = v
 
     all_sources: List[Tuple[str, List[FrameData]]] = []
     file_display_name = "batch"
@@ -215,7 +225,7 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
                 msg_fail = f"⚠️ Không đọc được: {', '.join(fail_names)}" if curr_lang == "vi" else f"⚠️ Failed: {', '.join(fail_names)}"
                 st.sidebar.warning(msg_fail)
 
-    else:  # 2. Tải thư mục
+    elif data_source == source_options[1]:  # 2. Tải thư mục
         st.sidebar.caption(t("folder_label"))
         folder_input = st.sidebar.text_input(
             t("folder_label"),
@@ -258,6 +268,101 @@ def render_sidebar(ai_model: Any) -> Dict[str, Any]:
                 unit_fr = "khung hình" if curr_lang == "vi" else "frames"
                 for fname, frs in all_sources:
                     st.caption(f"• **{fname}** — {len(frs)} {unit_fr}")
+
+    elif data_source == source_options[2]:  # 3. CVAT Sync
+        st.sidebar.markdown(
+            """<div style="font-size: 0.76rem; color: #00e5ff; font-weight: 700; margin-bottom: 6px;">🌐 KẾT NỐI CVAT REST API</div>""",
+            unsafe_allow_html=True
+        )
+
+        col_pr1, col_pr2 = st.sidebar.columns(2)
+        with col_pr1:
+            if st.button("🐳 Docker Local", use_container_width=True, help="Tự động nạp cấu hình CVAT Docker đang chạy tại localhost:8080"):
+                st.session_state["cvat_input_server_url"] = "http://localhost:8080"
+                st.session_state["cvat_input_token"] = "9e72a959c91cbfbd3bb011c047ba2f1e49022eb9"
+                st.session_state["cvat_input_job_id"] = 1
+                st.rerun()
+        with col_pr2:
+            if st.button("☁️ CVAT.ai", use_container_width=True, help="Sử dụng CVAT Cloud (app.cvat.ai)"):
+                st.session_state["cvat_input_server_url"] = "https://app.cvat.ai"
+                st.session_state["cvat_input_token"] = ""
+                st.session_state["cvat_input_job_id"] = 88
+                st.rerun()
+
+        cvat_url = st.sidebar.text_input(
+            "CVAT Server URL:",
+            value=st.session_state.get("cvat_input_server_url", st.session_state.get("cvat_server_url", "http://localhost:8080")),
+            help="Ví dụ: http://localhost:8080 (Docker local) hoặc https://app.cvat.ai.",
+            key="cvat_input_server_url",
+        )
+        st.session_state["cvat_server_url"] = cvat_url
+
+        cvat_token = st.sidebar.text_input(
+            "API Token:",
+            value=st.session_state.get("cvat_input_token", st.session_state.get("cvat_token", "")),
+            type="password",
+            help="Tạo token tại CVAT: Profile -> API Tokens.",
+            key="cvat_input_token",
+        )
+        st.session_state["cvat_token"] = cvat_token
+
+        cvat_job_id = st.sidebar.number_input(
+            "Job ID:" if curr_lang == "vi" else "Job ID:",
+            min_value=1,
+            max_value=999999,
+            value=int(st.session_state.get("cvat_input_job_id", st.session_state.get("cvat_job_id", 1))),
+            step=1,
+            key="cvat_input_job_id",
+        )
+        st.session_state["cvat_job_id"] = cvat_job_id
+
+        col_cvat_btn1, col_cvat_btn2 = st.sidebar.columns(2)
+        with col_cvat_btn1:
+            btn_fetch_lbl = "📥 Nạp Từ CVAT" if curr_lang == "vi" else "📥 Fetch CVAT"
+            if st.button(btn_fetch_lbl, use_container_width=True, type="primary", key="btn_fetch_cvat"):
+                bridge = CVATBridge(server_url=cvat_url, token=cvat_token)
+                with st.spinner("Đang kết nối và kéo nhãn + ảnh từ CVAT..." if curr_lang == "vi" else "Connecting & fetching annotations and images from CVAT..."):
+                    ok, frames_cvat, meta_info = bridge.fetch_job_as_frames(cvat_job_id, fetch_images=True)
+                    if ok:
+                        st.session_state["cvat_bridge"] = bridge
+                        st.session_state["cvat_meta"] = meta_info
+                        st.session_state["cvat_frames"] = frames_cvat
+                        img_map = meta_info.get("image_map", {})
+                        st.session_state["cvat_image_map"] = img_map
+                        uploaded_image_map.update(img_map)
+                        st.session_state["qc_ai_missed_cache"] = {}
+                        n_imgs = len(img_map) // 2 if img_map else 0
+                        st.sidebar.success(f"✅ Đã kéo {len(frames_cvat)} frame ({meta_info.get('total_shapes', 0)} shapes) + {n_imgs} ảnh gốc từ CVAT!")
+                        st.rerun()
+                    else:
+                        st.sidebar.error(f"❌ Không thể nạp từ CVAT: {meta_info.get('error')}")
+
+        with col_cvat_btn2:
+            btn_mock_lbl = "🧪 Test Mô Phỏng" if curr_lang == "vi" else "🧪 Mock Test"
+            if st.button(btn_mock_lbl, use_container_width=True, key="btn_mock_cvat", help="Chạy thử nghiệm mô phỏng CVAT local ngay lập tức mà không cần tài khoản hay server"):
+                frames_cvat, meta_info = create_cvat_mock_session()
+                bridge = CVATBridge(server_url=cvat_url, token="mock_token_demo")
+                st.session_state["cvat_bridge"] = bridge
+                st.session_state["cvat_meta"] = meta_info
+                st.session_state["cvat_frames"] = frames_cvat
+                img_map = meta_info.get("image_map", {})
+                st.session_state["cvat_image_map"] = img_map
+                uploaded_image_map.update(img_map)
+                st.session_state["qc_ai_missed_cache"] = {}
+                st.sidebar.info("🧪 Đã nạp thành công phiên mô phỏng CVAT Local kèm ảnh nền mô phỏng!")
+                st.rerun()
+
+        # Nạp dữ liệu vào pipeline nếu đã có cvat_frames
+        if "cvat_frames" in st.session_state and st.session_state["cvat_frames"]:
+            cvat_frames_data = st.session_state["cvat_frames"]
+            all_sources.append((f"cvat_job_{cvat_job_id}", cvat_frames_data))
+            file_display_name = f"CVAT Job #{cvat_job_id}"
+            has_imgs = bool(st.session_state.get("cvat_image_map"))
+            st.sidebar.caption(
+                f"🔗 Đang kết nối CVAT Job #{cvat_job_id} ({len(cvat_frames_data)} frames{' 📷 kèm ảnh thật' if has_imgs else ''})"
+                if curr_lang == "vi"
+                else f"🔗 Connected CVAT Job #{cvat_job_id} ({len(cvat_frames_data)} frames{' 📷 with real images' if has_imgs else ''})"
+            )
 
     # 3. Bộ lọc Rules & Nút tra cứu Luật/Rules
     st.sidebar.markdown("---")
