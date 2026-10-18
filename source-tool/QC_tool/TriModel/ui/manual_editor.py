@@ -72,6 +72,76 @@ def _reevaluate_qc(frames: List[FrameData], lang: str = "vi"):
     st.session_state["qc_frames"] = frames
 
 
+def auto_generate_polygon_for_object(img: Optional[Any], box: Optional[BBox2D]) -> Optional[Polygon2D]:
+    """Tự động sinh viền Polygon từ ảnh và Bounding Box bằng OpenCV GrabCut + Contour approximation."""
+    if box is None:
+        return None
+    try:
+        import cv2
+        import numpy as np
+        from PIL import Image
+
+        if img is not None:
+            if isinstance(img, Image.Image):
+                img_np = np.array(img.convert("RGB"))
+                img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+            elif isinstance(img, np.ndarray):
+                img_bgr = img if len(img.shape) == 3 and img.shape[2] == 3 else cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else:
+                img_bgr = None
+        else:
+            img_bgr = None
+
+        x1 = max(0.0, float(box.x1))
+        y1 = max(0.0, float(box.y1))
+        x2 = max(x1 + 1.0, float(box.x2))
+        y2 = max(y1 + 1.0, float(box.y2))
+        bw = x2 - x1
+        bh = y2 - y1
+
+        if img_bgr is not None and bw >= 8 and bh >= 8:
+            h, w = img_bgr.shape[:2]
+            ix1, iy1 = max(0, int(x1)), max(0, int(y1))
+            ix2, iy2 = min(w, int(x2)), min(h, int(y2))
+            crop_w, crop_h = ix2 - ix1, iy2 - iy1
+
+            if crop_w >= 8 and crop_h >= 8:
+                crop = img_bgr[iy1:iy2, ix1:ix2]
+                mask = np.zeros(crop.shape[:2], np.uint8)
+                bgd_model = np.zeros((1, 65), np.float64)
+                fgd_model = np.zeros((1, 65), np.float64)
+                rect = (max(1, int(crop_w * 0.05)), max(1, int(crop_h * 0.05)), max(2, int(crop_w * 0.90)), max(2, int(crop_h * 0.90)))
+                cv2.grabCut(crop, mask, rect, bgd_model, fgd_model, 2, cv2.GC_INIT_WITH_RECT)
+                bin_mask = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+                bin_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_CLOSE, kernel)
+
+                contours, _ = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    largest = max(contours, key=cv2.contourArea)
+                    if cv2.contourArea(largest) > (crop_w * crop_h * 0.08):
+                        epsilon = 0.015 * cv2.arcLength(largest, True)
+                        approx = cv2.approxPolyDP(largest, epsilon, True)
+                        if len(approx) >= 3:
+                            vertices = [(float(pt[0][0] + ix1), float(pt[0][1] + iy1)) for pt in approx]
+                            return Polygon2D(vertices=vertices)
+    except Exception:
+        pass
+
+    # Smooth Octagon fallback bám sát Bounding Box
+    dx, dy = bw * 0.16, bh * 0.16
+    return Polygon2D(vertices=[
+        (float(x1 + dx), float(y1)),
+        (float(x2 - dx), float(y1)),
+        (float(x2), float(y1 + dy)),
+        (float(x2), float(y2 - dy)),
+        (float(x2 - dx), float(y2)),
+        (float(x1 + dx), float(y2)),
+        (float(x1), float(y2 - dy)),
+        (float(x1), float(y1 + dy)),
+    ])
+
+
 def render_manual_editor_panel(
     target_obj: Optional[LabeledObject],
     selected_frame: FrameData,
@@ -170,6 +240,38 @@ def render_manual_editor_panel(
                     key=f"medit_trunc_{selected_frame.name}_{target_obj.id}",
                 )
 
+            # Phân đoạn Polygon (Segmentation)
+            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+            poly_label = "🔷 Viền Đa Giác (Polygon Segmentation):" if lang == "vi" else "🔷 Polygon Segmentation:"
+            has_poly = target_obj.poly2d is not None and len(target_obj.poly2d.vertices) >= 3
+            poly_desc = (
+                f"Đã có viền ({len(target_obj.poly2d.vertices)} đỉnh)" if has_poly else "Chưa có viền đa giác"
+            ) if lang == "vi" else (
+                f"Active ({len(target_obj.poly2d.vertices)} vertices)" if has_poly else "No polygon contour"
+            )
+            st.markdown(f"<div style='font-size: 0.74rem; color: #94a3b8; font-weight: 600; margin-bottom: 4px;'>{poly_label} <span style='color: {'#10b981' if has_poly else '#64748b'}; font-weight: 700;'>{poly_desc}</span></div>", unsafe_allow_html=True)
+
+            poly_btn1, poly_btn2 = st.columns(2)
+            with poly_btn1:
+                btn_auto_poly_lbl = "⚡ Tự Động Sinh Polygon" if lang == "vi" else "⚡ Auto-Gen Polygon"
+                if st.button(btn_auto_poly_lbl, use_container_width=True, key=f"btn_poly_gen_{selected_frame.name}_{target_obj.id}", help="Tự động trích xuất viền đối tượng bên trong Bounding Box bằng Computer Vision"):
+                    bx = target_obj.box2d or BBox2D(x1=new_x1, y1=new_y1, x2=new_x2, y2=new_y2)
+                    new_poly = auto_generate_polygon_for_object(loaded_img, bx)
+                    if new_poly:
+                        target_obj.poly2d = new_poly
+                        _reevaluate_qc(frames, lang=lang)
+                        st.toast(f"✨ Đã sinh viền Polygon ({len(new_poly.vertices)} đỉnh) cho {target_obj.id}!", icon="✨")
+                        st.rerun()
+            with poly_btn2:
+                if has_poly:
+                    btn_clr_poly = "🗑️ Gỡ Bỏ Polygon" if lang == "vi" else "🗑️ Remove Poly"
+                    if st.button(btn_clr_poly, use_container_width=True, key=f"btn_poly_clr_{selected_frame.name}_{target_obj.id}"):
+                        target_obj.poly2d = None
+                        _reevaluate_qc(frames, lang=lang)
+                        st.toast(f"🗑️ Đã xóa viền Polygon của đối tượng {target_obj.id}!", icon="🗑️")
+                        st.rerun()
+
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
             btn_col1, btn_col2 = st.columns(2)
             with btn_col1:
                 btn_save_lbl = "💾 Lưu Thay Đổi" if lang == "vi" else "💾 Save Edits"
