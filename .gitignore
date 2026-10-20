@@ -12,7 +12,16 @@ __pycache__/
 *.pt
 KICH-BAN-*.md
 *kich-ban*
+*kich_ban*
 *thuyet-trinh*
+*thuyet_trinh*
+*BAO_CAO*
+*bao_cao*
+*bao-cao*
+*baocao*
+*SLIDE*
+*slide*
+*presentation*
 *avatar*
 *banner*
 create_project_avatar.py
