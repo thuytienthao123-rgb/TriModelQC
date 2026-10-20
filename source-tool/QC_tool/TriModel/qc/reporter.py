@@ -282,6 +282,224 @@ def export_yolo_zip_bytes(frames: list) -> bytes:
     return buf.getvalue()
 
 
+def export_bdd100k_json(frames: list) -> str:
+    """Xuất danh sách FrameData thành định dạng chuẩn BDD100K JSON."""
+    import json
+    export_data = []
+    for f in frames:
+        f_dict = {"name": f.name, "labels": []}
+        for o in f.objects:
+            lbl = {
+                "id": o.id,
+                "category": o.category,
+                "attributes": o.attributes or {},
+            }
+            if o.box2d:
+                lbl["box2d"] = {
+                    "x1": round(float(o.box2d.x1), 1),
+                    "y1": round(float(o.box2d.y1), 1),
+                    "x2": round(float(o.box2d.x2), 1),
+                    "y2": round(float(o.box2d.y2), 1),
+                }
+            if o.poly2d and o.poly2d.vertices:
+                poly_types = getattr(o.poly2d, "types", "L" * len(o.poly2d.vertices))
+                poly_closed = getattr(o.poly2d, "closed", True)
+                lbl["poly2d"] = [{
+                    "vertices": [[round(float(v[0]), 1), round(float(v[1]), 1)] for v in o.poly2d.vertices],
+                    "types": poly_types,
+                    "closed": poly_closed,
+                }]
+            f_dict["labels"].append(lbl)
+        export_data.append(f_dict)
+    return json.dumps(export_data, indent=2, ensure_ascii=False)
+
+
+def export_anylabeling_json_single(frame) -> str:
+    """Xuất nhãn 1 khung hình thành file JSON chuẩn AnyLabeling / Labelme."""
+    import json
+    shapes = []
+    for obj in frame.objects:
+        cat = obj.category or "car"
+        attrs = obj.attributes or {}
+        
+        # 1. Bounding box (rectangle)
+        if obj.box2d and not (obj.poly2d and obj.poly2d.vertices):
+            bx = obj.box2d
+            shapes.append({
+                "label": cat,
+                "points": [
+                    [round(float(bx.x1), 1), round(float(bx.y1), 1)],
+                    [round(float(bx.x2), 1), round(float(bx.y2), 1)],
+                ],
+                "group_id": None,
+                "description": "",
+                "difficult": False,
+                "shape_type": "rectangle",
+                "flags": {},
+                "attributes": attrs,
+            })
+        # 2. Polygon
+        elif obj.poly2d and obj.poly2d.vertices:
+            pts = [[round(float(v[0]), 1), round(float(v[1]), 1)] for v in obj.poly2d.vertices]
+            shapes.append({
+                "label": cat,
+                "points": pts,
+                "group_id": None,
+                "description": "",
+                "difficult": False,
+                "shape_type": "polygon",
+                "flags": {},
+                "attributes": attrs,
+            })
+        elif obj.box2d:
+            bx = obj.box2d
+            shapes.append({
+                "label": cat,
+                "points": [
+                    [round(float(bx.x1), 1), round(float(bx.y1), 1)],
+                    [round(float(bx.x2), 1), round(float(bx.y2), 1)],
+                ],
+                "group_id": None,
+                "description": "",
+                "difficult": False,
+                "shape_type": "rectangle",
+                "flags": {},
+                "attributes": attrs,
+            })
+
+    image_name = Path(frame.name).name if frame.name else "image.jpg"
+    doc = {
+        "version": "0.4.1",
+        "flags": {},
+        "shapes": shapes,
+        "imagePath": image_name,
+        "imageData": None,
+        "imageHeight": int(frame.height if frame.height > 0 else 1080),
+        "imageWidth": int(frame.width if frame.width > 0 else 1920),
+    }
+    return json.dumps(doc, indent=2, ensure_ascii=False)
+
+
+def export_anylabeling_zip_bytes(frames: list) -> bytes:
+    """Xuất tệp ZIP chứa từng file JSON riêng cho từng frame theo chuẩn AnyLabeling / Labelme."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in frames:
+            stem = Path(f.name).stem
+            json_str = export_anylabeling_json_single(f)
+            zf.writestr(f"{stem}.json", json_str)
+    return buf.getvalue()
+
+
+def export_bdd100k_zip_bytes(frames: list) -> bytes:
+    """Xuất tệp ZIP chứa từng file JSON riêng cho từng frame theo chuẩn BDD100K."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in frames:
+            stem = Path(f.name).stem
+            json_str = export_bdd100k_json([f])
+            zf.writestr(f"{stem}.json", json_str)
+    return buf.getvalue()
+
+
+def export_yolo_txt_single(frame, cat_list: list = None) -> str:
+    """Xuất nhãn YOLO TXT cho 1 khung hình đơn lẻ."""
+    if cat_list is None:
+        cat_names = set(obj.category.strip().lower() for obj in frame.objects if obj.category)
+        cat_list = sorted(list(cat_names)) if cat_names else ["car", "pedestrian", "truck", "bus", "traffic light"]
+    cat_to_id = {name: idx for idx, name in enumerate(cat_list)}
+
+    fw = float(frame.width) if frame.width > 0 else 1920.0
+    fh = float(frame.height) if frame.height > 0 else 1080.0
+
+    lines = []
+    for obj in frame.objects:
+        if not obj.box2d:
+            continue
+        cname = (obj.category or "car").strip().lower()
+        cid = cat_to_id.get(cname, 0)
+        bx = obj.box2d
+        xc = ((bx.x1 + bx.x2) / 2.0) / fw
+        yc = ((bx.y1 + bx.y2) / 2.0) / fh
+        w = bx.width / fw
+        h = bx.height / fh
+        lines.append(f"{cid} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def export_cvat_xml_str(frames: list) -> str:
+    """Xuất danh sách FrameData thành định dạng CVAT XML 1.1 tiêu chuẩn."""
+    import xml.etree.ElementTree as ET
+    from xml.dom import minidom
+
+    root = ET.Element("annotations")
+    version = ET.SubElement(root, "version")
+    version.text = "1.1"
+
+    meta = ET.SubElement(root, "meta")
+    task = ET.SubElement(meta, "task")
+    name = ET.SubElement(task, "name")
+    name.text = "BDD-QC Healed Annotations"
+
+    # Trích xuất danh sách nhãn
+    labels_el = ET.SubElement(task, "labels")
+    cat_names = set()
+    for f in frames:
+        for obj in f.objects:
+            if obj.category:
+                cat_names.add(obj.category.strip().lower())
+    for c in sorted(list(cat_names)) if cat_names else ["car"]:
+        lbl_node = ET.SubElement(labels_el, "label")
+        name_node = ET.SubElement(lbl_node, "name")
+        name_node.text = c
+
+    for idx, f in enumerate(frames):
+        img_node = ET.SubElement(root, "image", {
+            "id": str(idx),
+            "name": f.name,
+            "width": str(int(f.width if f.width > 0 else 1920)),
+            "height": str(int(f.height if f.height > 0 else 1080)),
+        })
+
+        for obj in f.objects:
+            attrs = obj.attributes or {}
+            occ = "1" if attrs.get("occluded", False) else "0"
+            cname = (obj.category or "car").strip().lower()
+
+            if obj.box2d:
+                bx = obj.box2d
+                box_el = ET.SubElement(img_node, "box", {
+                    "label": cname,
+                    "occluded": occ,
+                    "xtl": f"{bx.x1:.1f}",
+                    "ytl": f"{bx.y1:.1f}",
+                    "xbr": f"{bx.x2:.1f}",
+                    "ybr": f"{bx.y2:.1f}",
+                    "z_order": "0",
+                })
+                for ak, av in attrs.items():
+                    if ak not in ("occluded", "truncated"):
+                        attr_el = ET.SubElement(box_el, "attribute", {"name": str(ak)})
+                        attr_el.text = str(av)
+
+            if obj.poly2d and obj.poly2d.vertices:
+                pts_str = ";".join(f"{pt[0]:.1f},{pt[1]:.1f}" for pt in obj.poly2d.vertices)
+                poly_el = ET.SubElement(img_node, "polygon", {
+                    "label": cname,
+                    "occluded": occ,
+                    "points": pts_str,
+                    "z_order": "0",
+                })
+
+    raw_str = ET.tostring(root, encoding="utf-8")
+    reparsed = minidom.parseString(raw_str)
+    return reparsed.toprettyxml(indent="  ", encoding="utf-8").decode("utf-8")
+
+
 # ---------------------------------------------------------------------------
 # HTML Reporter
 # ---------------------------------------------------------------------------
@@ -677,7 +895,7 @@ tr:hover td {{ background: rgba(56, 189, 248, 0.04); }}
 </div>
 
 <div class="footer">
-    <div>🕒 Xuất báo cáo lúc: <code>{now}</code> · Nhóm thực hiện: <strong>N2-04A</strong> (Đào Ngọc Hiếu, Đoàn Văn Thắng, Nguyễn Thanh Đức, Hoàng Công Chứ, Trần Thị Thủy Tiên)</div>
+    <div>🕒 Xuất báo cáo lúc: <code>{now}</code> · Nhóm thực hiện: <strong>N2-04A</strong> (Đào Ngọc Hiếu, Hoàng Công Chứ, Trần Thị Thủy Tiên)</div>
     <div>BDD-QC Suite v2.5 · VinUni AI Workshop</div>
 </div>
 

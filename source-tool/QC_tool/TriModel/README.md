@@ -34,43 +34,49 @@
 
 ---
 
-## 3. Phân công đội ngũ (5 Thành viên)
+## 3. Phân công đội ngũ đóng góp thực tế (3 Thành viên)
 
-| Thành viên | MSSV | Vai trò trong dự án | File phụ trách chính |
+> **Lưu ý nhân sự:** Dự án TriModel do **3 thành viên** trực tiếp nghiên cứu, thiết kế kiến trúc và hoàn thiện mã nguồn: **Đào Ngọc Hiếu**, **Hoàng Công Chứ**, và **Trần Thị Thủy Tiên** (thành viên Đoàn Văn Thắng và Nguyễn Thanh Đức không tham gia đóng góp phần này).
+
+| Thành viên | MSSV | Vai trò trong dự án TriModel | Module & Rule phụ trách chính |
 |---|---|---|---|
-| **Đào Ngọc Hiếu** | `2A202602081` | **Team Lead & Core Integration** | `main.py`, `qc/reporter.py`, Benchmark |
-| **Đoàn Văn Thắng** | `2A202602327` | **Data Engineer** | `qc/models.py`, `qc/parser.py` |
-| **Nguyễn Thanh Đức** | `2A202602279` | **BBox QC Specialist** | `qc/rules/bbox_rules.py` |
-| **Hoàng Công Chứ** | `2A202602187` | **Segmentation QC Specialist** | `qc/rules/polygon_rules.py` |
-| **Trần Thị Thủy Tiên** | `2A202602171` | **Consistency & Attribute Specialist** | `qc/rules/attribute_rules.py` |
+| **Đào Ngọc Hiếu** | `2A202602081` | **Team Lead, System Architect & AI Ensemble** | `main.py`, `app.py`, `qc/reporter.py`, `RULE_AI01` (YOLOv8 Ensemble), Benchmark Suite |
+| **Hoàng Công Chứ** | `2A202602187` | **Geometry & Spatial QC Specialist** | `qc/rules/polygon_rules.py` (`P01`–`P03`), `qc/rules/bbox_rules.py` (`B01`–`B04`), Shapely validation |
+| **Trần Thị Thủy Tiên** | `2A202602171` | **Data Pipeline & Attribute/Auto-Fix Specialist** | `qc/models.py`, `qc/parser.py`, `qc/rules/attribute_rules.py` (`A01`–`A03`), `class_rules.py`, `ui/auto_fix.py` |
 
-👉 Chi tiết nhiệm vụ và code mẫu của từng thành viên xem tại: [PHAN-CONG-NHIEM-VU.md](PHAN-CONG-NHIEM-VU.md)
+👉 Chi tiết phân công nhiệm vụ và mã nguồn từng thành viên xem tại: [PHAN-CONG-NHIEM-VU.md](PHAN-CONG-NHIEM-VU.md)
 
 ---
 
 ## 4. Kiến trúc mã nguồn
 
 ```text
-source-tool/bdd-qc-tool/
+source-tool/QC_tool/TriModel/
 ├── README.md                  # Tài liệu tổng quan (file này)
-├── PHAN-CONG-NHIEM-VU.md      # Bảng việc chi tiết cho 5 thành viên
+├── PHAN-CONG-NHIEM-VU.md      # Báo cáo phân công nhiệm vụ chi tiết
 ├── HUONG-DAN-KY-THUAT.md      # Chuẩn code, quy trình Git và hướng dẫn test
-├── requirements.txt           # Thư viện phụ thuộc (shapely, rich, tabulate)
+├── requirements.txt           # Thư viện phụ thuộc (shapely, ultralytics, streamlit)
+├── app.py                     # Streamlit Studio Dashboard & Visual Canvas
 ├── main.py                    # Điểm khởi chạy CLI tool
-├── data_sample/               # Thư mục chứa file dữ liệu kiểm thử
+├── evaluate_qc_accuracy.py    # Bộ benchmark định lượng độ chính xác
+├── benchmark_qc_accuracy_colab.ipynb # Notebook chạy test & fine-tune trên Google Colab
+├── data_sample/               # Thư mục dữ liệu kiểm thử BDD100K
 │   ├── sample_valid.json
 │   └── sample_with_errors.json
 └── qc/
     ├── __init__.py
-    ├── models.py              # [Văn Thắng] Data structures chuẩn
-    ├── parser.py              # [Văn Thắng] Module đọc file nhãn
-    ├── reporter.py            # [Ngọc Hiếu] Xuất báo cáo Console/HTML/CSV
+    ├── models.py              # [Thủy Tiên - Ngọc Hiếu] Cấu trúc dữ liệu chuẩn
+    ├── parser.py              # [Thủy Tiên - Ngọc Hiếu] Đọc dữ liệu JSON BDD100K & CVAT
+    ├── reporter.py            # [Ngọc Hiếu] Xuất báo cáo Console / HTML / CSV / JSON
+    ├── benchmark.py           # [Ngọc Hiếu] Đo đạc Precision / Recall / F1 / mIoU
     └── rules/
         ├── __init__.py
         ├── base.py            # Base class cho Rule
-        ├── bbox_rules.py      # [Thanh Đức] B01 - B04
+        ├── bbox_rules.py      # [Công Chứ - Ngọc Hiếu] B01 - B04
         ├── polygon_rules.py   # [Công Chứ] P01 - P03
-        └── attribute_rules.py # [Thủy Tiên] A01 - A03
+        ├── attribute_rules.py # [Thủy Tiên] A01 - A03
+        ├── class_rules.py     # [Thủy Tiên] C01 sai chính tả taxonomy
+        └── ai_rules.py        # [Ngọc Hiếu] AI01 phát hiện xe bỏ sót bằng YOLOv8
 ```
 
 ---

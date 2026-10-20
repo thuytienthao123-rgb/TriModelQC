@@ -54,6 +54,19 @@ def main():
     apply_custom_css(is_dark=is_dark)
 
     # 5. Khởi tạo Session State
+    st.session_state["qc_ai_model"] = ai_model
+    st.session_state["qc_uploaded_image_map"] = uploaded_image_map
+    st.session_state["qc_enable_ai_check"] = enable_ai_check
+    st.session_state["qc_ai_conf"] = ai_conf
+    st.session_state["qc_ai_ensemble_mode"] = ai_ensemble_mode
+
+    # Đảm bảo các layer hiển thị không bao giờ bị tắt nhãn mặc định
+    for _ly_k in ["scale_show_err", "scale_show_warn", "scale_show_valid", "scale_show_labels"]:
+        if _ly_k not in st.session_state:
+            st.session_state[_ly_k] = True
+    if "scale_show_grid" not in st.session_state:
+        st.session_state["scale_show_grid"] = False
+
     if "qc_report" not in st.session_state:
         st.session_state["qc_report"] = None
         st.session_state["qc_frames"] = None
@@ -71,6 +84,11 @@ def main():
         st.session_state["qc_display_name"] = ""
         st.session_state["active_frame_name"] = ""
         st.session_state["qc_ai_missed_cache"] = {}
+        st.session_state["scale_show_err"] = True
+        st.session_state["scale_show_warn"] = True
+        st.session_state["scale_show_valid"] = True
+        st.session_state["scale_show_labels"] = True
+        st.session_state["scale_show_grid"] = False
         st.rerun()
 
     from ui.i18n import t, get_current_lang, set_current_lang

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import streamlit as st
 import streamlit.components.v1 as components
@@ -77,6 +78,24 @@ def render_tab_visualizer(
 ):
     """Render Tab 2: Scale Nucleus Split-Workspace (Canvas + Kính Lúp Focus Loupe + Real-time Inspector)."""
     lang = get_current_lang()
+
+    # Đảm bảo các layer hiển thị luôn bật mặc định
+    for _ly_k in ["scale_show_err", "scale_show_warn", "scale_show_valid", "scale_show_labels"]:
+        if _ly_k not in st.session_state:
+            st.session_state[_ly_k] = True
+    if "scale_show_grid" not in st.session_state:
+        st.session_state["scale_show_grid"] = False
+
+    # Phục hồi nếu toàn bộ layer bị tắt do bug phiên trước
+    if (
+        not st.session_state.get("scale_show_valid", True)
+        and not st.session_state.get("scale_show_err", True)
+        and not st.session_state.get("scale_show_warn", True)
+    ):
+        st.session_state["scale_show_err"] = True
+        st.session_state["scale_show_warn"] = True
+        st.session_state["scale_show_valid"] = True
+        st.session_state["scale_show_labels"] = True
 
     # Palette colors for matplotlib styling based on theme
     if is_dark:
@@ -281,6 +300,8 @@ def render_tab_visualizer(
                 ai_cache = st.session_state.setdefault("qc_ai_missed_cache", {})
                 if selected_frame_name in ai_cache:
                     missed_objects = ai_cache[selected_frame_name]
+                elif Path(selected_frame_name).stem in ai_cache:
+                    missed_objects = ai_cache[Path(selected_frame_name).stem]
                 else:
                     missed_objects = detect_missed_objects(
                         loaded_img,
@@ -290,6 +311,7 @@ def render_tab_visualizer(
                         ensemble_mode=ensemble_mode,
                     )
                     ai_cache[selected_frame_name] = missed_objects
+                    ai_cache[Path(selected_frame_name).stem] = missed_objects
 
                 # Tự động đồng bộ lỗi MISSED của frame này vào báo cáo QC
                 cur_rep = st.session_state.get("qc_report")
@@ -775,6 +797,11 @@ def render_tab_visualizer(
                     canvas_h=img_h,
                     lang=lang,
                     loaded_img=loaded_img,
+                    ai_model=ai_model,
+                    uploaded_image_map=uploaded_image_map,
+                    enable_ai_check=enable_ai_check,
+                    ai_conf=ai_conf,
+                    ensemble_mode=ensemble_mode,
                 )
 
                 # Layer Visibility Toggles at the bottom of Inspector
@@ -783,12 +810,32 @@ def render_tab_visualizer(
                 st.markdown(f"<div style='font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>{layers_title}</div>", unsafe_allow_html=True)
                 t_col1, t_col2 = st.columns(2)
                 with t_col1:
-                    st.checkbox("🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"), key="scale_show_err")
-                    st.checkbox("🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"), key="scale_show_warn")
-                    st.checkbox("🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"), key="scale_show_valid")
+                    st.checkbox(
+                        "🔴 " + ("Lỗi nghiêm trọng" if lang == "vi" else "Defects"),
+                        value=st.session_state.get("scale_show_err", True),
+                        key="scale_show_err",
+                    )
+                    st.checkbox(
+                        "🟡 " + ("Cảnh báo" if lang == "vi" else "Warnings"),
+                        value=st.session_state.get("scale_show_warn", True),
+                        key="scale_show_warn",
+                    )
+                    st.checkbox(
+                        "🟢 " + ("Hộp hợp lệ" if lang == "vi" else "Valid BBox"),
+                        value=st.session_state.get("scale_show_valid", True),
+                        key="scale_show_valid",
+                    )
                 with t_col2:
-                    st.checkbox("🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"), key="scale_show_labels")
-                    st.checkbox("📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"), key="scale_show_grid")
+                    st.checkbox(
+                        "🏷️ " + ("Nhãn & ID" if lang == "vi" else "Labels & IDs"),
+                        value=st.session_state.get("scale_show_labels", True),
+                        key="scale_show_labels",
+                    )
+                    st.checkbox(
+                        "📐 " + ("Lưới tọa độ" if lang == "vi" else "Pixel Grid"),
+                        value=st.session_state.get("scale_show_grid", False),
+                        key="scale_show_grid",
+                    )
 
     components.html("""
     <script>

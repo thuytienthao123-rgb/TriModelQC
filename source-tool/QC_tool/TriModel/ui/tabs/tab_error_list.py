@@ -12,6 +12,10 @@ from qc.reporter import (
     generate_html_str,
     export_coco_json,
     export_yolo_zip_bytes,
+    export_bdd100k_json,
+    export_bdd100k_zip_bytes,
+    export_anylabeling_zip_bytes,
+    export_cvat_xml_str,
 )
 from ui.constants import RULE_SUGGESTIONS
 from ui.auto_fix import auto_correct_frames
@@ -217,13 +221,15 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
     st.caption(showing_msg)
 
     # -----------------------------------------------------------------------
-    # NÚT XUẤT BÁO CÁO ĐA ĐỊNH DẠNG (EXPORT HUB)
+    # NÚT XUẤT BÁO CÁO & TẬP NHÃN ĐÃ CHỮA LÀNH (EXPORT HUB)
     # -----------------------------------------------------------------------
-    export_header = "##### 📥 Xuất Báo Cáo & Dữ Liệu Kiểm Duyệt:" if lang == "vi" else "##### 📥 Export Audit Reports & Cleaned Datasets:"
+    export_header = "##### 📥 Xuất Báo Cáo & Dữ Liệu Kiểm Duyệt Đa Định Dạng:" if lang == "vi" else "##### 📥 Export Multi-Format Reports & Remediated Datasets:"
     st.markdown(export_header)
-    dcol1, dcol2, dcol3, dcol4 = st.columns(4)
-
-    with dcol1:
+    
+    # Hàng 1: Báo cáo kiểm định QC
+    st.caption("📊 " + ("Báo Cáo Kiểm Định QC:" if lang == "vi" else "QC Audit Reports:"))
+    r1_col1, r1_col2 = st.columns(2)
+    with r1_col1:
         csv_data = generate_csv_str(
             report,
             reviewer_notes=reviewer_notes,
@@ -240,7 +246,7 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
             help=csv_help,
         )
 
-    with dcol2:
+    with r1_col2:
         html_data = generate_html_str(report)
         html_lbl = "🌐 Báo Cáo HTML Độc Lập" if lang == "vi" else "🌐 Standalone HTML Report"
         html_help = "Báo cáo HTML Dashboard độc lập có tìm kiếm, bộ lọc và định dạng in PDF A4 chuyên nghiệp" if lang == "vi" else "Standalone interactive HTML report with dynamic search and print-ready A4 layout"
@@ -253,10 +259,65 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
             help=html_help,
         )
 
-    with dcol3:
+    # Hàng 2: Các tập nhãn xuất theo từng frame (AnyLabeling / Labelme & BDD100K)
+    st.caption("🏷️ " + ("Xuất Tệp JSON Từng Frame (Dành cho AnyLabeling, Labelme, Custom Tool):" if lang == "vi" else "Per-Frame JSON Datasets (For AnyLabeling, Labelme, Custom Tools):"))
+    pf_col1, pf_col2 = st.columns(2)
+    with pf_col1:
+        try:
+            anylabeling_zip_bytes = export_anylabeling_zip_bytes(frames)
+            an_lbl = "🏷️ Tải ZIP JSON Từng Frame (Chuẩn AnyLabeling / Labelme)" if lang == "vi" else "🏷️ Download AnyLabeling Per-Frame JSONs (.zip)"
+            an_help = "Tệp ZIP chứa các file {tên_ảnh}.json riêng lẻ theo chuẩn AnyLabeling. Giải nén vào cùng thư mục ảnh để mở và chỉnh sửa ngay trên AnyLabeling / Labelme!" if lang == "vi" else "ZIP containing individual {image_stem}.json files ready for AnyLabeling / Labelme"
+            st.download_button(
+                label=an_lbl,
+                data=anylabeling_zip_bytes,
+                file_name=f"anylabeling_frames_{Path(file_display_name).stem or file_display_name}.zip",
+                mime="application/zip",
+                use_container_width=True,
+                help=an_help,
+                key="tab1_export_anylabeling_zip",
+            )
+        except Exception:
+            pass
+
+    with pf_col2:
+        try:
+            bdd_zip_bytes = export_bdd100k_zip_bytes(frames)
+            bdd_zip_lbl = "📦 Tải ZIP Từng Frame (Chuẩn BDD100K - Không dùng cho AnyLabeling)" if lang == "vi" else "📦 Download BDD100K Per-Frame JSONs (.zip)"
+            bdd_zip_help = "Tệp ZIP chứa từng file {tên_ảnh}.json riêng lẻ theo chuẩn BDD100K (dạng danh sách [ ]). Chú ý: AnyLabeling không đọc được dạng này, hãy dùng nút [Chuẩn AnyLabeling / Labelme] bên cạnh!" if lang == "vi" else "ZIP containing individual {image_stem}.json files in BDD100K format"
+            st.download_button(
+                label=bdd_zip_lbl,
+                data=bdd_zip_bytes,
+                file_name=f"bdd100k_frames_{Path(file_display_name).stem or file_display_name}.zip",
+                mime="application/zip",
+                use_container_width=True,
+                help=bdd_zip_help,
+                key="tab1_export_bdd_zip",
+            )
+        except Exception:
+            pass
+
+    # Hàng 3: Các tập nhãn đã sửa định dạng chuẩn (BDD100K Toàn Bộ / COCO / YOLO / CVAT)
+    st.caption("📦 " + ("Tập Nhãn Gộp & Đa Định Dạng (BDD100K Toàn Bộ / COCO / YOLO / CVAT XML):" if lang == "vi" else "Combined & Multi-Format Datasets:"))
+    dcol1, dcol2, dcol3, dcol4 = st.columns(4)
+
+    with dcol1:
+        bdd_json_str = export_bdd100k_json(frames)
+        bdd_lbl = "📄 BDD100K Gộp (.json)" if lang == "vi" else "📄 BDD100K Combined (.json)"
+        bdd_help = "Xuất toàn bộ tập nhãn đã sửa vào 1 file JSON duy nhất theo chuẩn BDD100K" if lang == "vi" else "Export remediated dataset in a single combined BDD100K JSON file"
+        st.download_button(
+            label=bdd_lbl,
+            data=bdd_json_str.encode("utf-8"),
+            file_name=f"bdd100k_instances_{Path(file_display_name).stem or file_display_name}.json",
+            mime="application/json",
+            use_container_width=True,
+            help=bdd_help,
+            key="tab1_export_bdd_all",
+        )
+
+    with dcol2:
         coco_json_str = export_coco_json(frames)
-        coco_lbl = "📦 Xuất Tập Nhãn COCO JSON" if lang == "vi" else "📦 Export COCO JSON"
-        coco_help = "Xuất tập dữ liệu theo chuẩn COCO JSON dùng cho Detectron2 / MMDetection" if lang == "vi" else "Export annotations in COCO JSON format for Detectron2 / MMDetection"
+        coco_lbl = "📦 COCO JSON" if lang == "vi" else "📦 COCO JSON"
+        coco_help = "Xuất tập dữ liệu theo chuẩn COCO JSON dùng cho Detectron2 / MMDetection / YOLO" if lang == "vi" else "Export annotations in COCO JSON format for Detectron2 / MMDetection"
         st.download_button(
             label=coco_lbl,
             data=coco_json_str.encode("utf-8"),
@@ -264,11 +325,12 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
             mime="application/json",
             use_container_width=True,
             help=coco_help,
+            key="tab1_export_coco_all",
         )
 
-    with dcol4:
+    with dcol3:
         yolo_zip_bytes = export_yolo_zip_bytes(frames)
-        yolo_lbl = "⚡ Xuất Nhãn YOLO TXT (ZIP)" if lang == "vi" else "⚡ Export YOLO TXT (ZIP)"
+        yolo_lbl = "⚡ YOLO TXT (ZIP)" if lang == "vi" else "⚡ YOLO TXT (ZIP)"
         yolo_help = "Tải tệp ZIP chứa classes.txt và các file txt chuẩn YOLO để huấn luyện YOLOv8" if lang == "vi" else "Download ZIP archive containing normalized YOLO txt annotations and classes.txt"
         st.download_button(
             label=yolo_lbl,
@@ -277,7 +339,25 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
             mime="application/zip",
             use_container_width=True,
             help=yolo_help,
+            key="tab1_export_yolo_zip",
         )
+
+    with dcol4:
+        try:
+            cvat_xml_str = export_cvat_xml_str(frames)
+            cvat_lbl = "🌐 CVAT XML" if lang == "vi" else "🌐 CVAT XML"
+            cvat_help = "Xuất file XML chuẩn CVAT 1.1 để nạp trực tiếp vào CVAT Tool" if lang == "vi" else "Export annotations in CVAT XML 1.1 format"
+            st.download_button(
+                label=cvat_lbl,
+                data=cvat_xml_str.encode("utf-8"),
+                file_name=f"cvat_annotations_{Path(file_display_name).stem or file_display_name}.xml",
+                mime="application/xml",
+                use_container_width=True,
+                help=cvat_help,
+                key="tab1_export_cvat_xml",
+            )
+        except Exception:
+            pass
 
     # Xem trước trực tiếp HTML Dashboard ngay trên app
     preview_lbl = "🌐 Xem trước Báo Cáo HTML Trực Quan" if lang == "vi" else "🌐 Interactive HTML Report Live Preview"
@@ -316,14 +396,49 @@ def render_tab_error_list(report: QCReport, frames: List[FrameData], file_displa
             - 🔤 **Category Typos (C01):** Normalizes misspelled class labels to BDD100K ontology standards.
             """)
 
-        run_autofix_btn_lbl = "✨ Thực Thi Tự Động Sửa Lỗi" if lang == "vi" else "✨ Run Auto-Fix Engine"
-        if st.button(run_autofix_btn_lbl, type="primary", key="btn_run_autofix", use_container_width=True):
-            fixed_dataset, changelog, fix_stats = auto_correct_frames(frames)
-            st.session_state["auto_fix_done"] = True
-            st.session_state["auto_fix_data"] = fixed_dataset
-            st.session_state["auto_fix_log"] = changelog
-            st.session_state["auto_fix_stats"] = fix_stats
-            st.rerun()
+        all_missed_cache = st.session_state.get("qc_ai_missed_cache", {})
+        total_missed_cnt = sum(len(items) for items in all_missed_cache.values())
+
+        col_af1, col_af2 = st.columns([1, 1]) if total_missed_cnt > 0 else (st.container(), None)
+        
+        with col_af1:
+            run_autofix_btn_lbl = "✨ Thực Thi Tự Động Sửa Lỗi" if lang == "vi" else "✨ Run Auto-Fix Engine"
+            if st.button(run_autofix_btn_lbl, type="primary", key="btn_run_autofix", use_container_width=True):
+                fixed_dataset, changelog, fix_stats = auto_correct_frames(frames)
+                st.session_state["auto_fix_done"] = True
+                st.session_state["auto_fix_data"] = fixed_dataset
+                st.session_state["auto_fix_log"] = changelog
+                st.session_state["auto_fix_stats"] = fix_stats
+                st.rerun()
+
+        if col_af2 is not None and total_missed_cnt > 0:
+            with col_af2:
+                btn_all_missed_lbl = f"⚡ Nạp Toàn Bộ Vật Thể Bỏ Sót ({total_missed_cnt})" if lang == "vi" else f"⚡ Ingest All Missed Objects ({total_missed_cnt})"
+                if st.button(btn_all_missed_lbl, type="secondary", key="btn_autofix_all_missed", use_container_width=True):
+                    with st.spinner("Đang nạp toàn bộ nhãn bỏ sót..." if lang == "vi" else "Ingesting all missed objects..."):
+                        import time
+                        from qc.models import LabeledObject, BBox2D
+                        from qc.engine import run_qc
+                        added_total = 0
+                        for f_i, f in enumerate(frames):
+                            f_missed = all_missed_cache.get(f.name, [])
+                            for m_i, m_item in enumerate(f_missed):
+                                mbx = m_item["box2d"]
+                                mcat = m_item["category"]
+                                new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}_{f_i+1}_{m_i+1}"
+                                new_obj = LabeledObject(
+                                    id=new_id,
+                                    category=mcat,
+                                    box2d=BBox2D(x1=mbx.x1, y1=mbx.y1, x2=mbx.x2, y2=mbx.y2),
+                                    attributes={"occluded": False, "truncated": False},
+                                )
+                                f.objects.append(new_obj)
+                                added_total += 1
+                            all_missed_cache[f.name] = []
+                        st.session_state["qc_ai_missed_cache"] = all_missed_cache
+                        st.session_state["qc_report"] = run_qc(frames)
+                        st.toast(f"🎉 Đã nạp thành công {added_total} đối tượng bỏ sót vào nhãn!", icon="⚡")
+                        st.rerun()
 
         if st.session_state.get("auto_fix_done", False):
             fixed_data = st.session_state.get("auto_fix_data", [])

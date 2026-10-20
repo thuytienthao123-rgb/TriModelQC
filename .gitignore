@@ -22,3 +22,9 @@ create_project_avatar.py
 *.webm
 *.mkv
 THUMBNAIL-*.md
+qc_benchmark_report.*
+valid/
+nonlabel/
+*.zip
+qc_evaluation_results/
+

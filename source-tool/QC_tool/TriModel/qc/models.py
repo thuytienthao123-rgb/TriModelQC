@@ -1,6 +1,6 @@
 """
-models.py — Cấu trúc dữ liệu chuẩn cho BDD-QC Tool.
-Phụ trách chính: Đoàn Văn Thắng (2A202602327)
+models.py — Cấu trúc dữ liệu chuẩn cho BDD-QC Tool (TriModel).
+Phụ trách chính: Trần Thị Thủy Tiên (2A202602171) & Đào Ngọc Hiếu (2A202602081)
 """
 
 from __future__ import annotations

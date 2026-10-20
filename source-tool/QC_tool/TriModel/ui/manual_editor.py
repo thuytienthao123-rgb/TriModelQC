@@ -11,12 +11,22 @@ Tích hợp trực tiếp vào quy trình QC để người gán nhãn có thể
 from __future__ import annotations
 import json
 import time
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 import streamlit as st
 
 from qc.models import FrameData, LabeledObject, BBox2D, Polygon2D, QCReport, QCError
 from qc.engine import run_qc
-from qc.reporter import export_coco_json, export_yolo_zip_bytes
+from qc.reporter import (
+    export_coco_json,
+    export_yolo_zip_bytes,
+    export_bdd100k_json,
+    export_bdd100k_zip_bytes,
+    export_anylabeling_json_single,
+    export_anylabeling_zip_bytes,
+    export_yolo_txt_single,
+    export_cvat_xml_str,
+)
 
 
 STANDARD_BDD_CLASSES = [
@@ -150,8 +160,22 @@ def render_manual_editor_panel(
     canvas_h: int = 1080,
     lang: str = "vi",
     loaded_img: Optional[Any] = None,
+    ai_model: Optional[Any] = None,
+    uploaded_image_map: Optional[Dict[str, Any]] = None,
+    enable_ai_check: bool = True,
+    ai_conf: float = 0.50,
+    ensemble_mode: str = "nano",
 ):
     """Giao diện tương tác sửa tay trực tiếp dành cho Annotator trong Inspector."""
+    if ai_model is None:
+        ai_model = st.session_state.get("qc_ai_model")
+    if uploaded_image_map is None:
+        uploaded_image_map = st.session_state.get("qc_uploaded_image_map", {})
+    if ai_conf is None:
+        ai_conf = st.session_state.get("qc_ai_conf", 0.50)
+    if ensemble_mode is None:
+        ensemble_mode = st.session_state.get("qc_ai_ensemble_mode", "nano")
+
     st.markdown("---")
     panel_title = "🛠️ BỘ CÔNG CỤ SỬA TAY NHÃN (ANNOTATOR SUITE)" if lang == "vi" else "🛠️ MANUAL ANNOTATION & REMEDIATION SUITE"
     st.markdown(f"""
@@ -300,39 +324,197 @@ def render_manual_editor_panel(
     # -------------------------------------------------------------------------
     # 2. CHẤP NHẬN GỢI Ý VẬT THỂ BỎ SÓT (MISSED -> NẠP THÀNH NHÃN)
     # -------------------------------------------------------------------------
-    ai_missed_cache = st.session_state.get("qc_ai_missed_cache", {}).get(selected_frame.name, [])
-    if ai_missed_cache:
-        ai_box_title = f"🤖 Gợi Ý MISSED: Phát Hiện {len(ai_missed_cache)} Vật Thể Bỏ Sót" if lang == "vi" else f"🤖 MISSED Suggestions: {len(ai_missed_cache)} Unlabeled Instances"
-        with st.expander(ai_box_title, expanded=True):
-            st.caption(
-                "Trợ lý AI phát hiện các đối tượng bị bỏ sót (MISSED) chưa được gán nhãn. Bạn có thể nạp từng đối tượng hoặc nạp toàn bộ một lần:"
+    all_ai_cache = st.session_state.get("qc_ai_missed_cache", {})
+    total_all_missed = sum(len(items) for items in all_ai_cache.values())
+    ai_missed_cache = all_ai_cache.get(selected_frame.name, [])
+    if not ai_missed_cache and Path(selected_frame.name).stem in all_ai_cache:
+        ai_missed_cache = all_ai_cache[Path(selected_frame.name).stem]
+    if total_all_missed == 0 and ai_missed_cache:
+        total_all_missed = len(ai_missed_cache)
+
+    unscanned_frames = sum(
+        1 for f in frames
+        if f.name not in all_ai_cache and Path(f.name).stem not in all_ai_cache
+    )
+
+    if ai_missed_cache or total_all_missed > 0 or (unscanned_frames > 0 and ai_model is not None and enable_ai_check):
+        if total_all_missed > 0:
+            count_info = (
+                f"{len(ai_missed_cache)} Vật Thể Trên Ảnh Này · {total_all_missed} Trên Toàn Bộ Ảnh"
                 if lang == "vi"
-                else "AI consensus detected unlabeled objects (MISSED). Accept individually or import all at once:"
+                else f"{len(ai_missed_cache)} This Frame · {total_all_missed} All Images"
+            )
+        elif unscanned_frames > 0:
+            count_info = (
+                f"{len(ai_missed_cache)} Trên Ảnh Này · {unscanned_frames} Ảnh Chưa Quét"
+                if lang == "vi"
+                else f"{len(ai_missed_cache)} This Frame · {unscanned_frames} Unscanned Frames"
+            )
+        else:
+            count_info = (
+                f"{len(ai_missed_cache)} Vật Thể Trên Ảnh Này"
+                if lang == "vi"
+                else f"{len(ai_missed_cache)} This Frame"
             )
 
-            # NÚT NẠP TOÀN BỘ VẬT THỂ BỎ SÓT
-            btn_all_lbl = f"📥 Nạp Toàn Bộ Vật Thể Bỏ Sót Vào Nhãn ({len(ai_missed_cache)})" if lang == "vi" else f"📥 Accept All Missed Objects ({len(ai_missed_cache)})"
-            if st.button(btn_all_lbl, type="primary", use_container_width=True, key=f"btn_acc_all_{selected_frame.name}"):
-                added_count = 0
-                for m_idx, m_item in enumerate(ai_missed_cache):
-                    mbx: BBox2D = m_item["box2d"]
-                    mcat = m_item["category"]
-                    new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}_{m_idx+1}"
-                    new_obj = LabeledObject(
-                        id=new_id,
-                        category=mcat,
-                        box2d=BBox2D(x1=mbx.x1, y1=mbx.y1, x2=mbx.x2, y2=mbx.y2),
-                        attributes={"occluded": False, "truncated": False},
-                    )
-                    selected_frame.objects.append(new_obj)
-                    added_count += 1
-                # Xóa toàn bộ cache cho frame này vì đã được nạp thành công
-                st.session_state["qc_ai_missed_cache"][selected_frame.name] = []
-                _reevaluate_qc(frames, lang=lang)
-                st.toast(f"✅ Đã nạp toàn bộ {added_count} vật thể bỏ sót vào danh sách nhãn!", icon="📥")
-                st.rerun()
+        ai_box_title = f"🤖 Gợi Ý MISSED: {count_info}" if lang == "vi" else f"🤖 MISSED Suggestions: {count_info}"
+        with st.expander(ai_box_title, expanded=True):
+            st.caption(
+                "Trợ lý AI phát hiện các đối tượng bị bỏ sót (MISSED) chưa được gán nhãn. Bạn có thể nạp từng đối tượng, nạp cho ảnh này hoặc nạp trên toàn bộ ảnh:"
+                if lang == "vi"
+                else "AI consensus detected unlabeled objects (MISSED). Accept individually, for this image, or ingest across all images:"
+            )
 
-            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+            # CÁC NÚT NẠP TOÀN BỘ VẬT THỂ BỎ SÓT (ẢNH NÀY & TOÀN BỘ ẢNH)
+            col_acc1, col_acc2 = st.columns([1, 1])
+            with col_acc1:
+                btn_curr_lbl = (
+                    f"📥 Nạp Cho Ảnh Này ({len(ai_missed_cache)})"
+                    if lang == "vi"
+                    else f"📥 For This Image ({len(ai_missed_cache)})"
+                )
+                if st.button(
+                    btn_curr_lbl,
+                    type="secondary",
+                    use_container_width=True,
+                    disabled=(len(ai_missed_cache) == 0),
+                    key=f"btn_acc_curr_{selected_frame.name}",
+                ):
+                    added_count = 0
+                    cw = float(selected_frame.width) if selected_frame.width > 0 else 1920.0
+                    ch = float(selected_frame.height) if selected_frame.height > 0 else 1080.0
+                    for m_idx, m_item in enumerate(ai_missed_cache):
+                        mbx: BBox2D = m_item["box2d"]
+                        mcat = m_item["category"]
+                        new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}_{m_idx+1}"
+                        cx1 = max(0.0, min(cw - 2.0, float(mbx.x1)))
+                        cy1 = max(0.0, min(ch - 2.0, float(mbx.y1)))
+                        cx2 = max(cx1 + 1.0, min(cw, float(mbx.x2)))
+                        cy2 = max(cy1 + 1.0, min(ch, float(mbx.y2)))
+                        new_obj = LabeledObject(
+                            id=new_id,
+                            category=mcat,
+                            box2d=BBox2D(x1=cx1, y1=cy1, x2=cx2, y2=cy2),
+                            attributes={"occluded": False, "truncated": False},
+                        )
+                        selected_frame.objects.append(new_obj)
+                        added_count += 1
+                    
+                    all_cache = st.session_state.setdefault("qc_ai_missed_cache", {})
+                    all_cache[selected_frame.name] = []
+                    all_cache[Path(selected_frame.name).stem] = []
+                    st.session_state["qc_ai_missed_cache"] = all_cache
+                    st.session_state["qc_frames"] = frames
+
+                    # Đảm bảo bật tất cả layer hiển thị để annotator thấy nhãn ngay lập tức
+                    st.session_state["scale_show_err"] = True
+                    st.session_state["scale_show_warn"] = True
+                    st.session_state["scale_show_valid"] = True
+                    st.session_state["scale_show_labels"] = True
+
+                    _reevaluate_qc(frames, lang=lang)
+                    st.toast(f"✅ Đã nạp thành công {added_count} vật thể bỏ sót vào nhãn ảnh hiện tại!", icon="📥")
+                    st.rerun()
+
+            with col_acc2:
+                btn_all_text = (
+                    f"⚡ Nạp Nhãn Trên Toàn Bộ Ảnh ({total_all_missed})"
+                    if total_all_missed > 0
+                    else "⚡ Quét & Nạp Nhãn Toàn Bộ Ảnh"
+                ) if lang == "vi" else (
+                    f"⚡ Ingest On All Images ({total_all_missed})"
+                    if total_all_missed > 0
+                    else "⚡ Scan & Ingest All Images"
+                )
+                if st.button(
+                    btn_all_text,
+                    type="primary",
+                    use_container_width=True,
+                    key=f"btn_acc_all_frames_{selected_frame.name}",
+                ):
+                    from ui.ai_assistant import detect_missed_objects
+                    from ui.io_utils import find_matching_image, load_image
+
+                    all_cache = st.session_state.setdefault("qc_ai_missed_cache", {})
+                    img_map = uploaded_image_map if uploaded_image_map else st.session_state.get("qc_uploaded_image_map", {})
+                    active_model = ai_model if ai_model is not None else st.session_state.get("qc_ai_model")
+
+                    total_added = 0
+                    frames_affected = 0
+                    n_frames = len(frames)
+                    pbar = st.progress(0, text="🚀 Đang quét và nạp nhãn bỏ sót trên toàn bộ ảnh..." if lang == "vi" else "🚀 Ingesting missed objects across all images...")
+
+                    for f_idx, f in enumerate(frames):
+                        pct = int(100 * (f_idx + 1) / max(1, n_frames))
+                        pbar.progress(pct, text=f"🤖 Đang nạp nhãn ({f_idx+1}/{n_frames}): {f.name}" if lang == "vi" else f"🤖 Ingesting frame ({f_idx+1}/{n_frames}): {f.name}")
+
+                        f_missed = []
+                        if f.name in all_cache:
+                            f_missed = list(all_cache[f.name])
+                        elif Path(f.name).stem in all_cache:
+                            f_missed = list(all_cache[Path(f.name).stem])
+                        elif active_model is not None and img_map:
+                            matched_img = find_matching_image(f.name, img_map)
+                            img_f = load_image(matched_img)
+                            if img_f is not None:
+                                try:
+                                    f_missed = detect_missed_objects(
+                                        img_f,
+                                        f.objects,
+                                        active_model,
+                                        conf_thresh=ai_conf,
+                                        ensemble_mode=ensemble_mode,
+                                    )
+                                except Exception:
+                                    f_missed = []
+
+                        if f_missed:
+                            cw = float(f.width) if f.width > 0 else 1920.0
+                            ch = float(f.height) if f.height > 0 else 1080.0
+                            for m_idx, m_item in enumerate(f_missed):
+                                mbx: BBox2D = m_item["box2d"]
+                                mcat = m_item["category"]
+                                new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}_{f_idx+1}_{m_idx+1}"
+                                cx1 = max(0.0, min(cw - 2.0, float(mbx.x1)))
+                                cy1 = max(0.0, min(ch - 2.0, float(mbx.y1)))
+                                cx2 = max(cx1 + 1.0, min(cw, float(mbx.x2)))
+                                cy2 = max(cy1 + 1.0, min(ch, float(mbx.y2)))
+                                new_obj = LabeledObject(
+                                    id=new_id,
+                                    category=mcat,
+                                    box2d=BBox2D(x1=cx1, y1=cy1, x2=cx2, y2=cy2),
+                                    attributes={"occluded": False, "truncated": False},
+                                )
+                                f.objects.append(new_obj)
+                                total_added += 1
+                            frames_affected += 1
+
+                        # Đánh dấu frame này đã sạch nhãn bỏ sót và không cần cảnh báo lại
+                        all_cache[f.name] = []
+                        all_cache[Path(f.name).stem] = []
+
+                    pbar.empty()
+                    st.session_state["qc_ai_missed_cache"] = all_cache
+                    st.session_state["qc_frames"] = frames
+                    _reevaluate_qc(frames, lang=lang)
+
+                    # Đảm bảo bật tất cả layer hiển thị để annotator thấy toàn bộ nhãn ngay
+                    st.session_state["scale_show_err"] = True
+                    st.session_state["scale_show_warn"] = True
+                    st.session_state["scale_show_valid"] = True
+                    st.session_state["scale_show_labels"] = True
+
+                    success_msg = (
+                        f"🎉 Đã nạp thành công {total_added} vật thể bỏ sót trên {frames_affected} ảnh vào nhãn!"
+                        if lang == "vi"
+                        else f"🎉 Successfully ingested {total_added} missed objects across {frames_affected} images!"
+                    )
+                    st.toast(success_msg, icon="⚡")
+                    st.success(success_msg)
+                    time.sleep(0.4)
+                    st.rerun()
+
+            st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
             # NẠP TỪNG ĐỐI TƯỢNG RIÊNG LẺ
             for m_i, m_item in enumerate(ai_missed_cache):
@@ -348,17 +530,34 @@ def render_manual_editor_panel(
                 with mcol_btn:
                     btn_acc_lbl = "➕ Nạp Vào..." if lang == "vi" else "➕ Add Box"
                     if st.button(btn_acc_lbl, key=f"btn_acc_ai_{selected_frame.name}_{m_i}", use_container_width=True):
+                        cw = float(selected_frame.width) if selected_frame.width > 0 else 1920.0
+                        ch = float(selected_frame.height) if selected_frame.height > 0 else 1080.0
+                        cx1 = max(0.0, min(cw - 2.0, float(mbx.x1)))
+                        cy1 = max(0.0, min(ch - 2.0, float(mbx.y1)))
+                        cx2 = max(cx1 + 1.0, min(cw, float(mbx.x2)))
+                        cy2 = max(cy1 + 1.0, min(ch, float(mbx.y2)))
                         new_id = f"missed_{mcat[:3]}_{int(time.time()*100)%10000}"
                         new_obj = LabeledObject(
                             id=new_id,
                             category=mcat,
-                            box2d=BBox2D(x1=mbx.x1, y1=mbx.y1, x2=mbx.x2, y2=mbx.y2),
+                            box2d=BBox2D(x1=cx1, y1=cy1, x2=cx2, y2=cy2),
                             attributes={"occluded": False, "truncated": False},
                         )
                         selected_frame.objects.append(new_obj)
                         # Gỡ khỏi cache AI để không bị cảnh báo trùng
                         ai_missed_cache.pop(m_i)
-                        st.session_state["qc_ai_missed_cache"][selected_frame.name] = ai_missed_cache
+                        all_cache = st.session_state.setdefault("qc_ai_missed_cache", {})
+                        all_cache[selected_frame.name] = ai_missed_cache
+                        all_cache[Path(selected_frame.name).stem] = ai_missed_cache
+                        st.session_state["qc_ai_missed_cache"] = all_cache
+                        st.session_state["qc_frames"] = frames
+
+                        # Đảm bảo hiển thị nhãn
+                        st.session_state["scale_show_err"] = True
+                        st.session_state["scale_show_warn"] = True
+                        st.session_state["scale_show_valid"] = True
+                        st.session_state["scale_show_labels"] = True
+
                         _reevaluate_qc(frames, lang=lang)
                         st.toast(f"✅ Đã nạp đối tượng MISSED [{mcat}] vào danh sách nhãn!", icon="➕")
                         st.rerun()
@@ -495,62 +694,188 @@ def render_manual_editor_panel(
                     st.rerun()
 
     # -------------------------------------------------------------------------
-    # 4. TẢI VỀ BỘ NHÃN ĐÃ SỬA HOÀN TẤT
+    # 4. TẢI VỀ BỘ NHÃN ĐÃ SỬA HOÀN TẤT (JSON / YOLO / CVAT XML)
     # -------------------------------------------------------------------------
-    exp_title = "📥 Xuất Tệp Nhãn Đã Sửa (BDD100K / YOLO)" if lang == "vi" else "📥 Export Healed Annotations"
-    with st.expander(exp_title, expanded=False):
+    exp_title = "📥 Xuất Tệp Nhãn Đã Sửa (JSON / YOLO / CVAT XML)" if lang == "vi" else "📥 Export Healed Annotations (JSON / YOLO / CVAT)"
+    with st.expander(exp_title, expanded=True):
         st.caption(
-            "Tải về ngay bộ dữ liệu đã được chữa lành và kiểm định đạt chuẩn:"
+            "Tải về ngay bộ dữ liệu đã được chữa lành và kiểm định đạt chuẩn theo định dạng mong muốn:"
             if lang == "vi"
-            else "Download the remediated dataset ready for model training:"
-        )
-        # 1. BDD100K JSON
-        export_data = []
-        for f in frames:
-            f_dict = {"name": f.name, "labels": []}
-            for o in f.objects:
-                lbl = {
-                    "id": o.id,
-                    "category": o.category,
-                    "attributes": o.attributes or {},
-                }
-                if o.box2d:
-                    lbl["box2d"] = {
-                        "x1": o.box2d.x1,
-                        "y1": o.box2d.y1,
-                        "x2": o.box2d.x2,
-                        "y2": o.box2d.y2,
-                    }
-                if o.poly2d:
-                    poly_types = getattr(o.poly2d, "types", "L" * len(o.poly2d.vertices))
-                    poly_closed = getattr(o.poly2d, "closed", True)
-                    lbl["poly2d"] = [{"vertices": [list(v) for v in o.poly2d.vertices], "types": poly_types, "closed": poly_closed}]
-                f_dict["labels"].append(lbl)
-            export_data.append(f_dict)
-
-        bdd_json_bytes = json.dumps(export_data, indent=2, ensure_ascii=False).encode("utf-8")
-        st.download_button(
-            "📄 " + ("Tải Nhãn BDD100K Đã Sửa (.json)" if lang == "vi" else "Download Healed BDD100K (.json)"),
-            data=bdd_json_bytes,
-            file_name=f"{selected_frame.name}_healed.json",
-            mime="application/json",
-            use_container_width=True,
-            key=f"dl_bdd_healed_{selected_frame.name}",
+            else "Download the remediated dataset ready for model training in your preferred format:"
         )
 
-        # 2. YOLO Zip
-        try:
-            yolo_bytes = export_yolo_zip_bytes(frames)
-            st.download_button(
-                "📦 " + ("Tải Toàn Bộ Nhãn YOLO (.zip)" if lang == "vi" else "Download YOLO Labels (.zip)"),
-                data=yolo_bytes,
-                file_name="yolo_healed_labels.zip",
-                mime="application/zip",
-                use_container_width=True,
-                key=f"dl_yolo_healed_{selected_frame.name}",
+        stem = Path(selected_frame.name).stem
+        qc_sources = st.session_state.get("qc_sources", [])
+        detected_label = "BDD100K JSON (.json)"
+        if qc_sources:
+            first_src_name = qc_sources[0][0].lower()
+            if first_src_name.endswith(".txt"):
+                detected_label = "YOLO TXT (.txt / .zip)"
+            elif first_src_name.endswith(".xml") or "cvat" in first_src_name:
+                detected_label = "CVAT XML (.xml)"
+            elif first_src_name.endswith(".json"):
+                detected_label = "JSON (BDD100K / COCO .json)"
+
+        # Banner nhận diện định dạng giống Input
+        st.markdown(f"""
+        <div style="background: rgba(0, 229, 255, 0.08); border-left: 3px solid #00e5ff; padding: 6px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 0.74rem;">
+            🎯 <strong>Định dạng phát hiện từ Input:</strong> <span style="color: #00e5ff; font-weight: 700;">{detected_label}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        tab_dl_json, tab_dl_yolo, tab_dl_cvat = st.tabs([
+            "📄 Định Dạng JSON" if lang == "vi" else "📄 JSON Formats",
+            "⚡ Định Dạng YOLO" if lang == "vi" else "⚡ YOLO Formats",
+            "🌐 Định Dạng CVAT XML" if lang == "vi" else "🌐 CVAT XML Format",
+        ])
+
+        with tab_dl_json:
+            st.markdown(
+                """
+                <div style='font-size: 0.74rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;'>
+                    💡 <strong>Hỗ trợ phần mềm gán nhãn ngoài (AnyLabeling, Labelme, BDD100K):</strong><br/>
+                    Tải về từng file <code>.json</code> độc lập tương ứng với mỗi frame ảnh hoặc file JSON gộp toàn bộ.
+                </div>
+                """
+                if lang == "vi"
+                else """
+                <div style='font-size: 0.74rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;'>
+                    💡 <strong>External Annotation Tools Support (AnyLabeling, Labelme, BDD100K):</strong><br/>
+                    Export per-frame <code>.json</code> files or combined datasets.
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-        except Exception:
-            pass
+
+            # 1. AnyLabeling ZIP (Mỗi frame 1 file json riêng)
+            try:
+                anylabeling_zip = export_anylabeling_zip_bytes(frames)
+                st.download_button(
+                    "🏷️ " + ("Tải ZIP JSON Từng Frame (Chuẩn AnyLabeling / Labelme)" if lang == "vi" else "Download AnyLabeling JSONs (.zip)"),
+                    data=anylabeling_zip,
+                    file_name="anylabeling_frames_json.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key=f"dl_anylabeling_zip_{selected_frame.name}",
+                    help="Tệp ZIP chứa các file {tên_ảnh}.json riêng lẻ theo chuẩn AnyLabeling. Giải nén vào thư mục ảnh để mở và chỉnh sửa trực tiếp trên AnyLabeling!",
+                )
+            except Exception:
+                pass
+
+            # 2. File JSON AnyLabeling của ảnh này
+            try:
+                anylabeling_single = export_anylabeling_json_single(selected_frame)
+                st.download_button(
+                    "📄 " + (f"Tải File JSON AnyLabeling Cho Ảnh Này ({stem}.json)" if lang == "vi" else f"Download AnyLabeling JSON ({stem}.json)"),
+                    data=anylabeling_single.encode("utf-8"),
+                    file_name=f"{stem}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key=f"dl_anylabeling_single_{selected_frame.name}",
+                    help=f"Tải trực tiếp file nhãn {stem}.json theo định dạng AnyLabeling cho ảnh này",
+                )
+            except Exception:
+                pass
+
+            # 3. BDD100K ZIP (Mỗi frame 1 file json riêng)
+            try:
+                bdd_zip = export_bdd100k_zip_bytes(frames)
+                st.download_button(
+                    "📦 " + ("Tải ZIP Từng Frame (Chuẩn BDD100K - Không dùng cho AnyLabeling)" if lang == "vi" else "Download BDD100K JSONs Per Frame (.zip)"),
+                    data=bdd_zip,
+                    file_name="bdd100k_frames_json.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key=f"dl_bdd_zip_{selected_frame.name}",
+                    help="Tệp ZIP chứa từng file {tên_ảnh}.json riêng theo cấu trúc BDD100K (dạng danh sách [ ]). Chú ý: AnyLabeling không đọc được dạng này, vui lòng dùng nút [Chuẩn AnyLabeling / Labelme] ở trên!",
+                )
+            except Exception:
+                pass
+
+            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+            j_col1, j_col2 = st.columns(2)
+            with j_col1:
+                # 4. BDD100K JSON Gộp toàn bộ
+                bdd_all_bytes = export_bdd100k_json(frames).encode("utf-8")
+                st.download_button(
+                    "📄 " + ("BDD100K Toàn Bộ (.json)" if lang == "vi" else "BDD100K All (.json)"),
+                    data=bdd_all_bytes,
+                    file_name="bdd100k_all_healed.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key=f"dl_bdd_all_{selected_frame.name}",
+                    help="Tải 1 file JSON duy nhất chứa toàn bộ nhãn của tất cả ảnh theo chuẩn BDD100K",
+                )
+            with j_col2:
+                # 5. COCO JSON Gộp toàn bộ
+                try:
+                    coco_str = export_coco_json(frames)
+                    st.download_button(
+                        "📦 " + ("COCO Instances (.json)" if lang == "vi" else "COCO Instances (.json)"),
+                        data=coco_str.encode("utf-8"),
+                        file_name="coco_instances_healed.json",
+                        mime="application/json",
+                        use_container_width=True,
+                        key=f"dl_coco_all_{selected_frame.name}",
+                        help="Xuất tập nhãn chuẩn COCO Instances JSON cho Detectron2 / YOLO / PyTorch",
+                    )
+                except Exception:
+                    pass
+
+        with tab_dl_yolo:
+            st.markdown(
+                "<div style='font-size: 0.73rem; color: #94a3b8; margin-bottom: 6px;'>Tải nhãn định dạng YOLO TXT (tọa độ chuẩn hóa 0..1 kèm classes.txt):</div>"
+                if lang == "vi"
+                else "<div style='font-size: 0.73rem; color: #94a3b8; margin-bottom: 6px;'>Export annotations in YOLO TXT format (normalized 0..1):</div>",
+                unsafe_allow_html=True,
+            )
+            # 1. YOLO TXT của ảnh hiện tại
+            yolo_curr_txt = export_yolo_txt_single(selected_frame)
+            st.download_button(
+                "⚡ " + (f"Tải YOLO TXT (Chỉ Ảnh Này: {stem}.txt)" if lang == "vi" else f"Download YOLO TXT ({stem}.txt)"),
+                data=yolo_curr_txt.encode("utf-8"),
+                file_name=f"{stem}.txt",
+                mime="text/plain",
+                use_container_width=True,
+                key=f"dl_yolo_txt_single_{selected_frame.name}",
+                help=f"Tải trực tiếp file nhãn {stem}.txt theo định dạng YOLO cho ảnh này",
+            )
+
+            # 2. YOLO Zip toàn bộ
+            try:
+                yolo_bytes = export_yolo_zip_bytes(frames)
+                st.download_button(
+                    "📦 " + ("Tải Toàn Bộ Nhãn YOLO (.zip)" if lang == "vi" else "Download All YOLO Labels (.zip)"),
+                    data=yolo_bytes,
+                    file_name="yolo_healed_labels.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key=f"dl_yolo_healed_{selected_frame.name}",
+                    help="Tải tệp ZIP chứa classes.txt và tất cả file .txt của các frame",
+                )
+            except Exception:
+                pass
+
+        with tab_dl_cvat:
+            st.markdown(
+                "<div style='font-size: 0.73rem; color: #94a3b8; margin-bottom: 6px;'>Tải nhãn định dạng CVAT XML 1.1 (tương thích nạp lại trực tiếp vào CVAT Tool):</div>"
+                if lang == "vi"
+                else "<div style='font-size: 0.73rem; color: #94a3b8; margin-bottom: 6px;'>Export annotations in CVAT XML 1.1 format:</div>",
+                unsafe_allow_html=True,
+            )
+            try:
+                cvat_xml_data = export_cvat_xml_str(frames)
+                st.download_button(
+                    "🌐 " + ("Tải Nhãn CVAT XML (.xml)" if lang == "vi" else "Download CVAT XML (.xml)"),
+                    data=cvat_xml_data.encode("utf-8"),
+                    file_name="cvat_annotations_healed.xml",
+                    mime="application/xml",
+                    use_container_width=True,
+                    key=f"dl_cvat_xml_all_{selected_frame.name}",
+                    help="Tải file XML chuẩn CVAT để nạp vào công cụ CVAT",
+                )
+            except Exception:
+                pass
 
     # -------------------------------------------------------------------------
     # 5. ĐỒNG BỘ TRỰC TIẾP VỚI CVAT (TWO-WAY SYNC TO CVAT)

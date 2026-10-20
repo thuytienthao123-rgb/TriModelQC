@@ -1,6 +1,6 @@
 """
 bbox_rules.py — Bộ luật kiểm tra Bounding Box 2D.
-Phụ trách chính: Nguyễn Thanh Đức (2A202602279)
+Phụ trách chính: Hoàng Công Chứ (2A202602187) & Đào Ngọc Hiếu (2A202602081)
 
 Rules:
   RULE_B01  Out of Bounds       — Tọa độ vượt ra ngoài kích thước ảnh

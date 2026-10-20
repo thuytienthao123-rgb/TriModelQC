@@ -1,6 +1,6 @@
 """
-parser.py — Đọc file nhãn BDD100K JSON và chuẩn hóa sang FrameData.
-Phụ trách chính: Đoàn Văn Thắng (2A202602327)
+parser.py — Đọc file nhãn BDD100K JSON / CVAT và chuẩn hóa sang FrameData.
+Phụ trách chính: Trần Thị Thủy Tiên (2A202602171) & Đào Ngọc Hiếu (2A202602081)
 """
 
 from __future__ import annotations
